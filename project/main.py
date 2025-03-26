@@ -6,42 +6,41 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "databases_methods"))
 import telebot
 from telebot import types
 from students_handler import setup_student_handlers, students_keyboard
+from admins_handler import admin_keyboard, setup_admin_handlers
+from main_admins_handler import main_admin_keyboard, setup_main_admin_handlers
+
 from databases_methods.main_admin_methods import get_main_admin
 from databases_methods.users_methods import add_user, get_user
 from databases_methods.students_methods import add_student
 from databases_methods.key_for_admin import search_key
 from databases_methods.students_methods import update_student_info, get_student
-from databases_methods.admins_methods import add_admin
+from databases_methods.admins_methods import add_admin, get_admin
 
 bot = telebot.TeleBot('7903231812:AAE0zim_gbjgysiiXmHmRsG_P0s33PlxkZs')
 
 setup_student_handlers(bot)
-
+setup_admin_handlers(bot)
+setup_main_admin_handlers(bot)
 
 @bot.message_handler(commands = ['start'])
 def start(message):
     tg_id = message.from_user.id
-    tg_username = message.from_user.username
+    get_main_admin(tg_id)
 
-    user = get_user(tg_id)
-
-    if user == None:
+    if get_main_admin(tg_id):
+        bot.send_message(message.chat.id, f'Здравствуйте, {message.from_user.first_name}! Выберите действие:', reply_markup = main_admin_keyboard())
+    elif get_admin(tg_id) != None:
+        bot.send_message(message.chat.id,
+                         f'Здравствуйте {message.from_user.first_name}. Вы уже зарегистрированы, как администратор. Выберите действие:',
+                         reply_markup = admin_keyboard())
+    elif get_student(tg_id) != None:
+        bot.send_message(message.chat.id,
+                         f'Здравствуйте {message.from_user.first_name}. Вы уже зарегистрированы, как студент. Выберите действие:',
+                         reply_markup = students_keyboard())
+    else:
         bot.send_message(message.chat.id,
                          f'Здравствуйте, {message.from_user.first_name}. Вы еще не зарегистрированы. Введите своё ФИО также, как написано в ведомости.')
         bot.register_next_step_handler(message, process_fio)
-
-    elif user != None and get_main_admin(tg_id) == None:
-        bot.send_message(message.chat.id,
-                         f'Здравствуйте {message.from_user.first_name}. Вы уже зарегистрированы. Выберите действие:',
-                         reply_markup = students_keyboard())
-    else:
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton('Просмотр администраторов', callback_data = 'list_of_admin'))
-        markup.add(types.InlineKeyboardButton('Изменить список студентов', callback_data = 'list_of_students'))
-        markup.add(types.InlineKeyboardButton('Создать новую работу', callback_data = 'new_task'))
-        markup.add(types.InlineKeyboardButton('Просмотр созданных работ', callback_data = 'list_of_tasks'))
-        bot.send_message(message.chat.id, f'Здравствуйте, {message.from_user.first_name}! Выберите действие:',
-                         reply_markup = markup)
 
 
 # узнаем фио пользователя
@@ -84,7 +83,7 @@ def continue_registration(callback):
         bot.register_next_step_handler(callback.message, process_group)
 
 
-# узнаем номер группы
+# узнаем номер группы студента
 def process_group(message):
     group = message.text
     add_student(message.from_user.id, group)
@@ -100,9 +99,12 @@ def process_new_admin(message):
         bot.send_message(message.chat.id, "Введите группы, за которые вы ответственны через пробел. Например: 241 243 244")
         bot.register_next_step_handler(message, process_group_for_admin)
     else:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton('Я студент', callback_data = 'student'))
+        markup.add(types.InlineKeyboardButton('Я преподователь или ассистент', callback_data = 'new_admin'))
         bot.send_message(message.chat.id,
                          "Не удалось зарегистрироваться. Возможно, вы ввели неверный код, или код уже устарел. Выберите следующее действие:",
-                         reply_markup = students_keyboard())
+                         reply_markup = markup) # хмм возможно здесь не студент кибоард
 
 
 def process_group_for_admin(message):
@@ -112,8 +114,8 @@ def process_group_for_admin(message):
     for group in list_of_groups:
         groups += group + ' '
     groups = groups[:-1]
-    add_admin(message.chat.id, groups)
-    bot.send_message(message.chat.id, "Вы успешно зарегистрировались, теперь вам доступны права администратора")
+    add_admin(message.from_user.id, message.from_user.username, groups)
+    bot.send_message(message.chat.id, "Вы успешно зарегистрировались, теперь вам доступны права администратора", reply_markup = admin_keyboard())
 
 
 def admins_keyboard():

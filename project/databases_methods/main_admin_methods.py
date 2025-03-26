@@ -17,7 +17,7 @@ def create_db_main_admin():
     CREATE TABLE IF NOT EXISTS main_admin (
         tg_id INTEGER UNIQUE, 
         tg_username TEXT,
-        groups_of_student TEXT
+        groups_of_student TEXT,
         full_name TEXT
     )
     """)

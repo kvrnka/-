@@ -18,6 +18,7 @@ def create_db_admin():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS admins (
         tg_id INTEGER UNIQUE,
+        tg_username TEXT,
         full_name TEXT,
         groups_of_students TEXT
     )
@@ -27,7 +28,7 @@ def create_db_admin():
     conn.close()
 
 
-def add_admin(tg_id, groups_of_students):
+def add_admin(tg_id, tg_username, groups_of_students):
     create_db_admin()
 
     user = get_user(tg_id)
@@ -36,38 +37,103 @@ def add_admin(tg_id, groups_of_students):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    cursor.execute("INSERT OR IGNORE INTO admins (tg_id, full_name, groups_of_students) VALUES (?, ?, ?)",
-                   (tg_id, full_name, groups_of_students))
+    cursor.execute("INSERT OR IGNORE INTO admins (tg_id, tg_username, full_name, groups_of_students) VALUES (?, ?, ?, ?)",
+                   (tg_id, tg_username, full_name, groups_of_students))
 
     conn.commit()
     conn.close()
 
 
-def search_key(key_):
-    pass
-    # create_db_admin()
-    #
-    # conn = sqlite3.connect(db_path)
-    # cursor = conn.cursor()
-    #
-    # cursor.execute("SELECT * FROM key_for_admin WHERE key_ = ?", (key_,))
-    # keys = cursor.fetchall()  # возможно здесь надо fetchall
-    #
-    # conn.close()
-    #
-    # if keys == []:
-    #     return False
-    #
-    # now = datetime.now()
-    # formatted_time = now.strftime("%Y-%m-%d %H:%M:%S")
-    #
-    # date_now = datetime.strptime(formatted_time, "%Y-%m-%d %H:%M:%S")
-    #
-    # for res in keys:
-    #     date_past_str = res[2]
-    #     date_past = datetime.strptime(date_past_str, "%Y-%m-%d %H:%M:%S")
-    #     diff = date_now - date_past
-    #     if diff <= timedelta(days = 3):
-    #         return True
-    #
-    # return False
+def get_admin(tg_id):
+    create_db_admin()
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM admins WHERE tg_id = ?", (tg_id,))
+    admin = cursor.fetchone()
+
+    conn.close()
+    return admin
+
+
+def delete_admin_by_username(tg_usernames):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    tg_user = tg_usernames.split()
+
+    deleted_rows = 0
+
+    for user in tg_user:
+        cursor.execute("DELETE FROM admins WHERE tg_username = ?", (user,))
+        conn.commit()
+        deleted_rows += cursor.rowcount
+
+    conn.close()
+
+    return deleted_rows == len(tg_user)
+
+
+def get_all_admin():
+    create_db_admin()
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM admins")
+
+    admins = cursor.fetchall()
+
+    conn.close()
+
+    list_of_admin = ''
+
+    for i in range(len(admins)):
+        list_of_admin += f"{i + 1}. Имя пользователя: " + admins[i][1] + '\n'
+        list_of_admin += "Имя: " + admins[i][2] + '\n'
+        list_of_admin += "Группы: " + admins[i][3] + '\n'
+        list_of_admin += '\n'
+
+    return list_of_admin
+
+
+# доделать
+def update_admin_info(tg_id, new_groups_of_students=None, new_full_name=None):
+    create_db_admin()
+
+    print("update_admin_info started")
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM admins WHERE tg_id = ?", (tg_id,))
+    admin = cursor.fetchone()
+
+    # админ не найден
+    if admin is None:
+        conn.close()
+        return False
+
+    # Обновляем только те поля, которые переданы
+    update_fields = []
+    values = []
+
+    if new_groups_of_students:
+        update_fields.append("groups_of_students = ?")
+        values.append(new_groups_of_students)
+    if new_full_name:
+        update_fields.append("full_name = ?")
+        values.append(new_full_name)
+
+    if update_fields:
+        values.append(tg_id)  # Добавляем tg_id в конец для WHERE
+        query = f"UPDATE admins SET {', '.join(update_fields)} WHERE tg_id = ?"
+        cursor.execute(query, values)
+        conn.commit()
+        conn.close()
+        return True
+    else:
+        conn.close()
+        return False
+

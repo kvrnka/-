@@ -39,8 +39,8 @@ def setup_student_handlers(bot):
 
     def process_update_name(message):
         new_name = message.text
-        update_student_info(message.chat.id, None, new_name)
-        student = get_student(message.chat.id)
+        update_student_info(message.from_user.id, None, new_name)
+        student = get_student(message.from_user.id)
         bot.send_message(message.chat.id, "Информация изменена.\n"
                                           f"Ваше имя: {student[2]}\n"
                                           f"Ваша группа: {student[1]}",
@@ -48,8 +48,8 @@ def setup_student_handlers(bot):
 
     def process_update_group(message):
         new_group = message.text
-        update_student_info(message.chat.id, new_group, None)
-        student = get_student(message.chat.id)
+        update_student_info(message.from_user.id, new_group, None)
+        student = get_student(message.from_user.id)
         bot.send_message(message.chat.id, "Информация изменена.\n"
                                           f"Ваше имя: {student[2]}\n"
                                           f"Ваша группа: {student[1]}",
