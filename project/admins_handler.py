@@ -39,14 +39,12 @@ def setup_admin_handlers(bot):
     def process_update_name(message):
         new_name = message.text
         if update_admin_info_db(message.from_user.id, new_full_name=new_name):
-            print("all ok, we changed name")
             admin = get_admin(message.from_user.id)
             bot.send_message(message.chat.id, "Информация изменена.\n"
                                               f"Ваше имя: {admin[2]}\n"
                                               f"Ваша группа: {admin[3]}",
                              reply_markup = admin_keyboard())  # добавить вывод информации
         else:
-            print("we didn't(")
             bot.send_message(message.chat.id, "Не удалось изменить информацию.")
 
     def process_update_group(message):

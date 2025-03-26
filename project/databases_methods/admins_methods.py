@@ -102,8 +102,6 @@ def get_all_admin():
 def update_admin_info(tg_id, new_groups_of_students=None, new_full_name=None):
     create_db_admin()
 
-    print("update_admin_info started")
-
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -127,7 +125,7 @@ def update_admin_info(tg_id, new_groups_of_students=None, new_full_name=None):
         values.append(new_full_name)
 
     if update_fields:
-        values.append(tg_id)  # Добавляем tg_id в конец для WHERE
+        values.append(tg_id)
         query = f"UPDATE admins SET {', '.join(update_fields)} WHERE tg_id = ?"
         cursor.execute(query, values)
         conn.commit()

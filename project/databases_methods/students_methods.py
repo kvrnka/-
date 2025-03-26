@@ -18,7 +18,8 @@ def create_db_student():
     CREATE TABLE IF NOT EXISTS students (
         tg_id INTEGER UNIQUE,
         student_group INTEGER,
-        full_name TEXT
+        full_name TEXT,
+        number_in_list INTEGER
     )
     """)
 

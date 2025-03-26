@@ -18,7 +18,7 @@ def create_db_list_of_student():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS list_of_students (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        student_group INTEGER,
+        group_number INTEGER,
         full_name TEXT
     )
     """)
@@ -28,16 +28,19 @@ def create_db_list_of_student():
 
 
 def add_by_excel(file_path):
+    create_db_list_of_student()
     try:
-        df = pd.read_excel(file_path)  # Загружаем файл
+        df = pd.read_excel(file_path)
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        # Проверяем наличие нужных столбцов
+        # очищаем бд перед тем как добавить новый список
+        cursor.execute("DELETE FROM list_of_students")
+        conn.commit()
+
         if "full_name" not in df.columns or "group_number" not in df.columns:
             return "Ошибка! В файле должны быть столбцы: 'full_name' и 'group_number'"
 
-        # Добавляем студентов в базу данных
         for _, row in df.iterrows():
             cursor.execute("INSERT INTO list_of_students (full_name, group_number) VALUES (?, ?)",
                            (row["full_name"], row["group_number"]))
@@ -50,38 +53,71 @@ def add_by_excel(file_path):
         return f"Ошибка при обработке файла: {e}"
 
 
+def add_student_in_list(group_number, full_name):
+    create_db_list_of_student()
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("INSERT OR IGNORE INTO list_of_students (group_number, full_name) VALUES (?, ?)",
+                   (group_number, full_name))
+
+    conn.commit()
+    conn.close()
 
 
+def get_list_of_students():
+    create_db_list_of_student()
 
-# def add_student(tg_id, student_group):
-#     create_db_list_of_student()
-#
-#     user = get_user(tg_id)
-#     full_name = user[3]
-#
-#     conn = sqlite3.connect(db_path)
-#     cursor = conn.cursor()
-#
-#     cursor.execute("INSERT OR IGNORE INTO students (tg_id, student_group, full_name) VALUES (?, ?, ?)",
-#                    (tg_id, student_group, full_name))
-#
-#     conn.commit()
-#     conn.close()
-#
-#
-# def get_student(tg_id):
-#     create_db_list_of_student()
-#
-#     conn = sqlite3.connect(db_path)
-#     cursor = conn.cursor()
-#
-#     cursor.execute("SELECT * FROM students WHERE tg_id = ?", (tg_id,))
-#     student = cursor.fetchone()
-#
-#     conn.close()
-#     return student
-#
-#
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM list_of_students")
+
+    students = cursor.fetchall()
+
+    conn.close()
+
+    list_of_students = ''
+
+    for i in range(len(students)):
+        list_of_students += f"{students[i][0]}. " + students[i][2] + " " + str(students[i][1]) + '\n'
+
+    return list_of_students
+
+
+def get_student_from_list(id):
+    create_db_list_of_student()
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM list_of_students WHERE id = ?", (id,))
+    student = cursor.fetchone()
+
+    conn.close()
+    return student
+
+# можно передать список
+def delete_student_from_list(ids):
+    create_db_list_of_student()
+
+    list_id = ids.split(", ")
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    deleted_rows = 0
+
+    for id in list_id:
+        cursor.execute("DELETE FROM list_of_students WHERE id = ?", (id,))  # Удаляем запись
+        conn.commit()
+        deleted_rows += cursor.rowcount
+
+    conn.close()
+
+    return deleted_rows == len(list_id)
+
 # def update_student_info(tg_id, new_group=None, new_full_name=None):
 #     create_db_list_of_student()
 #

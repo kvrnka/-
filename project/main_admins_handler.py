@@ -2,7 +2,8 @@ import telebot
 from telebot import types
 import os
 from databases_methods.admins_methods import get_all_admin, delete_admin_by_username
-from databases_methods.list_of_students_methods import add_by_excel
+from databases_methods.list_of_students_methods import (add_by_excel, get_list_of_students, add_student_in_list,
+                                                        delete_student_from_list)
 from databases_methods.key_for_admin import add_key
 
 bot = telebot.TeleBot('7903231812:AAE0zim_gbjgysiiXmHmRsG_P0s33PlxkZs')
@@ -67,15 +68,60 @@ def setup_main_admin_handlers(bot):
                              f"{new_list}", reply_markup = main_admin_keyboard())
         else:
             bot.send_message(message.chat.id,
-                             f"Не удалось удалить кого-то из пользователей из администраторов. Список на данный момент: \n"
+                             f"Не удалось удалить какого-то пользователя из администраторов. Список на данный момент: \n"
                              f"{new_list}", reply_markup = main_admin_keyboard())
 
     @bot.callback_query_handler(func = lambda callback: callback.data in ['edit_list_of_students'])
     def change_list_of_students(callback):
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton('Создать новый список', callback_data = 'new_list_of_students'))
-        markup.add(types.InlineKeyboardButton('Редактировать список', callback_data = 'change_list_of_student'))
-        bot.send_message(callback.message.chat.id, f"Выберите следующее действие: ", reply_markup = markup)
+        markup.add(types.InlineKeyboardButton('Редактировать список', callback_data = 'add_or_delete_student'))
+        bot.send_message(callback.message.chat.id, f"Выберите следующее действие: \n"
+                                                   f'При выборе "Создать новый список" старый список удалится',
+                         reply_markup = markup)
+
+    @bot.callback_query_handler(func = lambda callback: callback.data in ['add_or_delete_student'])
+    def edit_list_of_students(callback):
+        list_of_students = get_list_of_students()
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton('Добавить студента', callback_data = 'add_new_student'))
+        markup.add(types.InlineKeyboardButton('Удалить студентов', callback_data = 'delete_old_students'))
+        bot.send_message(callback.message.chat.id, f"Список студентов: \n"
+                                                   f"{list_of_students}\n"
+                                                   f"Выберите действие:", reply_markup = markup)
+
+    @bot.callback_query_handler(func = lambda callback: callback.data in ['add_new_student', 'delete_old_students'])
+    def change_handler(callback):
+        if callback.data == 'add_new_student':
+            bot.send_message(callback.message.chat.id,
+                             f"Введите имя и группу студента через запятую, например: Иванов Иван, 235")
+            bot.register_next_step_handler(callback.message, process_name_of_new_student)
+        else:
+            bot.send_message(callback.message.chat.id,
+                             f"Введите номера студентов, которых хотите удалить, через запятую и пробел. Например: 1, 4, 6")
+            bot.register_next_step_handler(callback.message, process_delete_students)
+
+    def process_name_of_new_student(message):
+        str = message.text
+        name_and_group = str.split(", ")
+        add_student_in_list(name_and_group[1], name_and_group[0])
+        list_of_students = get_list_of_students()
+        bot.send_message(message.chat.id, f"Список изменён:\n"
+                                          f"{list_of_students}"
+                                          f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
+
+    def process_delete_students(message):
+        numbers = message.text
+        if delete_student_from_list(numbers):
+            list_of_students = get_list_of_students()
+            bot.send_message(message.chat.id, f"Все выбранные студенты удалены, обновленный список:\n"
+                                              f"{list_of_students}"
+                                              f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
+        else:
+            list_of_students = get_list_of_students()
+            bot.send_message(message.chat.id, f"Не удалось удалить студента, список на данный момент:\n"
+                                              f"{list_of_students}"
+                                              f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
 
     @bot.callback_query_handler(func = lambda callback: callback.data in ['new_list_of_students'])
     def new_list_of_students(callback):
@@ -90,26 +136,23 @@ def setup_main_admin_handlers(bot):
         file_info = bot.get_file(file_id)
         file_path = file_info.file_path
 
-        # Загружаем файл
         downloaded_file = bot.download_file(file_path)
         local_filename = f"temp_{message.document.file_name}"
+
+        if not (local_filename.endswith('.xlsx') or local_filename.endswith('.xls')):
+            bot.send_message(message.chat.id, "Ошибка! Отправьте файл в формате Excel (.xlsx или .xls).")
+            return
 
         with open(local_filename, "wb") as new_file:
             new_file.write(downloaded_file)
 
-        if not (new_file.endswith('.xlsx') or new_file.endswith('.xls')):
-            bot.send_message(message.chat.id, "Ошибка! Отправьте файл в формате Excel (.xlsx или .xls).")
-            os.remove(local_filename)
-            return
-
-        # Обрабатываем файл
         response = add_by_excel(local_filename)
 
-        # Удаляем временный файл
         os.remove(local_filename)
 
-        # Отправляем ответ пользователю
-        bot.send_message(message.chat.id, response)
+        list_of_students = get_list_of_students()
+        text = response + '\n' + list_of_students
+        bot.send_message(message.chat.id, text)
 
     @bot.callback_query_handler(func = lambda callback: callback.data in ['create_task'])
     def create_task(callback):
@@ -118,12 +161,3 @@ def setup_main_admin_handlers(bot):
     @bot.callback_query_handler(func = lambda callback: callback.data in ['list_of_task'])
     def get_list_of_task(callback):
         pass
-
-    # @bot.callback_query_handler(func = lambda callback: callback.data in ['update_name', 'update_group'])
-    # def handle_update_request(callback):
-    #     if callback.data == 'update_admin_name':
-    #         bot.send_message(callback.message.chat.id, f"Введите новое имя.")
-    #         bot.register_next_step_handler(callback.message, process_update_name)
-    #     if callback.data == 'update_admin_group':
-    #         bot.send_message(callback.message.chat.id, f"Введите новый список групп.")
-    #         bot.register_next_step_handler(callback.message, process_update_group)
