@@ -13,7 +13,7 @@ from databases_methods.main_admin_methods import get_main_admin
 from databases_methods.users_methods import add_user, get_user
 from databases_methods.students_methods import add_student
 from databases_methods.key_for_admin import search_key
-from databases_methods.students_methods import update_student_info, get_student
+from databases_methods.students_methods import update_student_info, get_student_by_tg_id
 from databases_methods.admins_methods import add_admin, get_admin
 
 bot = telebot.TeleBot('7903231812:AAE0zim_gbjgysiiXmHmRsG_P0s33PlxkZs')
@@ -35,7 +35,7 @@ def start(message):
         bot.send_message(message.chat.id,
                          f'Здравствуйте {message.from_user.first_name}. Вы уже зарегистрированы, как администратор. Выберите действие:',
                          reply_markup = admin_keyboard())
-    elif get_student(tg_id) != None:
+    elif get_student_by_tg_id(tg_id) != None:
         bot.send_message(message.chat.id,
                          f'Здравствуйте {message.from_user.first_name}. Вы уже зарегистрированы, как студент. Выберите действие:',
                          reply_markup = students_keyboard())
@@ -88,9 +88,14 @@ def continue_registration(callback):
 # узнаем номер группы студента
 def process_group(message):
     group = message.text
-    add_student(message.from_user.id, group)
-    bot.send_message(message.chat.id, "Ваши данные сохранены. Выберите следующее действие:",
-                     reply_markup = students_keyboard())
+    if add_student(message.from_user.id, group):
+        bot.send_message(message.chat.id, "Ваши данные сохранены. Выберите следующее действие:",
+                         reply_markup = students_keyboard())
+    else:
+        bot.send_message(message.chat.id,
+                         "Ваши данные сохранены, но вы не найдены в списке лектора. Проверьте, совпадают ли ваши группа и имя с ведомостью. Вы в любой момент можете изменить данные.\n"
+                         "Выберите следующее действие:",
+                         reply_markup = students_keyboard())
 
 
 # регаемся как ассистент

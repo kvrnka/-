@@ -2,6 +2,7 @@ import sqlite3
 import os
 import pandas as pd
 from users_methods import get_user
+# from students_methods import update_id_of_student_from_list
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_DIR = os.path.join(BASE_DIR, "../databases")
@@ -44,6 +45,9 @@ def add_by_excel(file_path):
         for _, row in df.iterrows():
             cursor.execute("INSERT INTO list_of_students (full_name, group_number) VALUES (?, ?)",
                            (row["full_name"], row["group_number"]))
+            student_id = cursor.lastrowid
+            from students_methods import update_id_of_student_from_list
+            update_id_of_student_from_list(row["full_name"], row["group_number"], student_id)
 
         conn.commit()
         conn.close()
@@ -61,6 +65,9 @@ def add_student_in_list(group_number, full_name):
 
     cursor.execute("INSERT OR IGNORE INTO list_of_students (group_number, full_name) VALUES (?, ?)",
                    (group_number, full_name))
+    student_id = cursor.lastrowid
+    from students_methods import update_id_of_student_from_list
+    update_id_of_student_from_list(full_name, group_number, student_id)
 
     conn.commit()
     conn.close()
@@ -86,7 +93,7 @@ def get_list_of_students():
     return list_of_students
 
 
-def get_student_from_list(id):
+def get_student_from_list_by_id(id):
     create_db_list_of_student()
 
     conn = sqlite3.connect(db_path)
@@ -97,6 +104,25 @@ def get_student_from_list(id):
 
     conn.close()
     return student
+
+
+def get_id_from_list_by_name_and_group(name, group):
+    create_db_list_of_student()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id FROM list_of_students
+        WHERE full_name = ? AND group_number = ?
+        """, (name, group))
+
+    student = cursor.fetchone()
+    conn.close()
+    if student:
+        return student[0]
+    else:
+        return None
+
 
 # можно передать список
 def delete_student_from_list(ids):
@@ -117,39 +143,3 @@ def delete_student_from_list(ids):
     conn.close()
 
     return deleted_rows == len(list_id)
-
-# def update_student_info(tg_id, new_group=None, new_full_name=None):
-#     create_db_list_of_student()
-#
-#     conn = sqlite3.connect(db_path)
-#     cursor = conn.cursor()
-#
-#     cursor.execute("SELECT * FROM students WHERE tg_id = ?", (tg_id,))
-#     student = cursor.fetchone()
-#
-#     # студент не найден
-#     if student is None:
-#         conn.close()
-#         return False
-#
-#     # Обновляем только те поля, которые переданы
-#     update_fields = []
-#     values = []
-#
-#     if new_group:
-#         update_fields.append("student_group = ?")
-#         values.append(new_group)
-#     if new_full_name:
-#         update_fields.append("full_name = ?")
-#         values.append(new_full_name)
-#
-#     if update_fields:
-#         values.append(tg_id)  # Добавляем tg_id в конец для WHERE
-#         query = f"UPDATE students SET {', '.join(update_fields)} WHERE tg_id = ?"
-#         cursor.execute(query, values)
-#         conn.commit()
-#         conn.close()
-#         return True
-#     else:
-#         conn.close()
-#         return False
