@@ -1,5 +1,4 @@
 import logging
-import telebot
 from telebot import types
 from databases_methods.admins_methods import update_admin_info as update_admin_info_db, get_admin
 
@@ -8,8 +7,6 @@ logging.basicConfig(
     level=logging.ERROR,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
-
-bot = telebot.TeleBot('7903231812:AAE0zim_gbjgysiiXmHmRsG_P0s33PlxkZs')
 
 
 # клавиатурка

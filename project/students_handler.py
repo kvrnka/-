@@ -1,9 +1,6 @@
 import logging
-import telebot
 from telebot import types
 from databases_methods.students_methods import update_student_info, get_student_by_tg_id
-
-bot = telebot.TeleBot('7903231812:AAE0zim_gbjgysiiXmHmRsG_P0s33PlxkZs')
 
 logging.basicConfig(
     filename = "bot_errors.log",

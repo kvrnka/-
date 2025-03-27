@@ -16,7 +16,10 @@ def create_db_key():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS key_for_admin (
         primary_key INTEGER AUTOINCREMENT,
+        name_of_task TEXT,
         key_ INTEGER,
+        deadline TEXT,
+        target_groups TEXT,
         date_of_creation TEXT
     )
     """)

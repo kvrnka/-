@@ -1,13 +1,10 @@
 import logging
-import telebot
 from telebot import types
 import os
 from databases_methods.admins_methods import get_all_admin, delete_admin_by_username
 from databases_methods.list_of_students_methods import (add_by_excel, get_list_of_students, add_student_in_list,
                                                         delete_student_from_list)
 from databases_methods.key_for_admin import add_key
-
-bot = telebot.TeleBot('7903231812:AAE0zim_gbjgysiiXmHmRsG_P0s33PlxkZs')
 
 
 logging.basicConfig(
@@ -23,7 +20,7 @@ def main_admin_keyboard():
         markup.add(types.InlineKeyboardButton('Изменить список студентов', callback_data = 'edit_list_of_students'))
         markup.add(types.InlineKeyboardButton('Просмотр администраторов', callback_data = 'list_of_admin'))
         markup.add(
-            types.InlineKeyboardButton('Создать новое задание', callback_data = 'create_task'))
+            types.InlineKeyboardButton('Создать новую работу', callback_data = 'create_task'))
         markup.add(
             types.InlineKeyboardButton('Просмотр заданий', callback_data = 'list_of_task'))
         return markup
@@ -36,13 +33,13 @@ def setup_main_admin_handlers(bot):
     def get_list_of_admin(callback):
         try:
             admins = get_all_admin()
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton('Добавить новых администраторов', callback_data = 'add_new_admin'))
+            markup.add(types.InlineKeyboardButton('Удалить администратора', callback_data = 'delete_admin'))
             if not admins:
                 bot.send_message(callback.message.chat.id, f"Список администраторов пуст.",
-                                 reply_markup = main_admin_keyboard())
+                                 reply_markup = markup)
             else:
-                markup = types.InlineKeyboardMarkup()
-                markup.add(types.InlineKeyboardButton('Добавить новых администраторов', callback_data = 'add_new_admin'))
-                markup.add(types.InlineKeyboardButton('Удалить администратора', callback_data = 'delete_admin'))
                 bot.send_message(callback.message.chat.id, f"Список администраторов: \n"
                                                            f"{admins}"
                                                            f"Выберите следующее действие:", reply_markup = markup)
@@ -209,9 +206,19 @@ def setup_main_admin_handlers(bot):
             logging.error(f"Ошибка в handle_document: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
-    @bot.callback_query_handler(func = lambda callback: callback.data in ['create_task'])
-    def create_task(callback):
-        pass
+    # @bot.callback_query_handler(func = lambda callback: callback.data in ['create_task'])
+    # def create_task(callback):
+    #     try:
+    #         bot.send_message(callback.message.chat.id, f"Введите название новой работы")
+    #         bot.register_next_step_handler(callback.message, process_name_of_new_task)
+    #     except Exception as e:
+    #         logging.error(f"Ошибка в create_task: {e}")
+    #         bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+    #
+    #
+    # def process_name_of_new_task(message):
+    #     name = message.text
+
 
     @bot.callback_query_handler(func = lambda callback: callback.data in ['list_of_task'])
     def get_list_of_task(callback):

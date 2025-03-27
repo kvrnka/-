@@ -1,7 +1,7 @@
 import sqlite3
 import os
 import pandas as pd
-from users_methods import get_user
+# from users_methods import get_user
 # from students_methods import update_id_of_student_from_list
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

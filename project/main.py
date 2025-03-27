@@ -16,14 +16,18 @@ from databases_methods.students_methods import add_student
 from databases_methods.key_for_admin import search_key
 from databases_methods.students_methods import update_student_info, get_student_by_tg_id
 from databases_methods.admins_methods import add_admin, get_admin
+from dotenv import load_dotenv
+
+load_dotenv()
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+bot = telebot.TeleBot(BOT_TOKEN)
 
 logging.basicConfig(
     filename="bot_errors.log",
     level=logging.ERROR,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
-
-bot = telebot.TeleBot('7903231812:AAE0zim_gbjgysiiXmHmRsG_P0s33PlxkZs')
 
 setup_student_handlers(bot)
 setup_admin_handlers(bot)
