@@ -3,7 +3,7 @@ from telebot import types
 from databases_methods.admins_methods import update_admin_info as update_admin_info_db, get_admin
 
 logging.basicConfig(
-    filename="bot_errors.log",
+    filename= "bot_errors.log",
     level=logging.ERROR,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )

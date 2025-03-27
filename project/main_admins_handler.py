@@ -8,7 +8,7 @@ from databases_methods.key_for_admin import add_key
 
 
 logging.basicConfig(
-    filename="bot_errors.log",
+    filename= "bot_errors.log",
     level=logging.ERROR,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
@@ -206,14 +206,14 @@ def setup_main_admin_handlers(bot):
             logging.error(f"Ошибка в handle_document: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
-    # @bot.callback_query_handler(func = lambda callback: callback.data in ['create_task'])
+    # @project.callback_query_handler(func = lambda callback: callback.data in ['create_task'])
     # def create_task(callback):
     #     try:
-    #         bot.send_message(callback.message.chat.id, f"Введите название новой работы")
-    #         bot.register_next_step_handler(callback.message, process_name_of_new_task)
+    #         project.send_message(callback.message.chat.id, f"Введите название новой работы")
+    #         project.register_next_step_handler(callback.message, process_name_of_new_task)
     #     except Exception as e:
     #         logging.error(f"Ошибка в create_task: {e}")
-    #         bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+    #         project.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
     #
     #
     # def process_name_of_new_task(message):
