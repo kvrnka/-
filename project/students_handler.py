@@ -31,10 +31,10 @@ def setup_student_handlers(bot):
     @bot.callback_query_handler(func = lambda callback: callback.data in ['update_name', 'update_group'])
     def handle_update_request(callback):
         if callback.data == 'update_name':
-            bot.send_message(callback.message.chat.id, f"Введите новое имя.")
+            bot.send_message(callback.message.chat.id, f"Введите новое имя")
             bot.register_next_step_handler(callback.message, process_update_name)
         if callback.data == 'update_group':
-            bot.send_message(callback.message.chat.id, f"Введите новую группу.")
+            bot.send_message(callback.message.chat.id, f"Введите новую группу")
             bot.register_next_step_handler(callback.message, process_update_group)
 
     def process_update_name(message):
@@ -44,7 +44,7 @@ def setup_student_handlers(bot):
         if check[0] == False:
             bot.send_message(message.chat.id, "Не удалось обновить информацию", reply_markup = students_keyboard())
         elif check[0] == True and check[1] == True:
-            bot.send_message(message.chat.id, "Информация изменена, вы найдены в списке лектора.\n"
+            bot.send_message(message.chat.id, "Информация изменена, вы найдены в списке лектора!\n"
                                               f"Ваше имя: {student[2]}\n"
                                               f"Ваша группа: {student[1]}",
                              reply_markup = students_keyboard())
@@ -61,7 +61,7 @@ def setup_student_handlers(bot):
         if check[0] == False:
             bot.send_message(message.chat.id, "Не удалось обновить информацию", reply_markup = students_keyboard())
         elif check[0] == True and check[1] == True:
-            bot.send_message(message.chat.id, "Информация изменена, вы найдены в списке лектора.\n"
+            bot.send_message(message.chat.id, "Информация изменена, вы найдены в списке лектора!\n"
                                               f"Ваше имя: {student[2]}\n"
                                               f"Ваша группа: {student[1]}",
                              reply_markup = students_keyboard())

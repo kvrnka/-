@@ -61,7 +61,7 @@ def delete_admin_by_username(tg_usernames):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    tg_user = tg_usernames.split()
+    tg_user = tg_usernames.split(", ")
 
     deleted_rows = 0
 
@@ -90,7 +90,7 @@ def get_all_admin():
     list_of_admin = ''
 
     for i in range(len(admins)):
-        list_of_admin += f"{i + 1}. Имя пользователя: " + admins[i][1] + '\n'
+        list_of_admin += f"{i + 1}. Имя пользователя: @" + admins[i][1] + '\n'
         list_of_admin += "Имя: " + admins[i][2] + '\n'
         list_of_admin += "Группы: " + admins[i][3] + '\n'
         list_of_admin += '\n'

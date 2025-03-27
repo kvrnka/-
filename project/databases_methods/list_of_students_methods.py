@@ -57,17 +57,38 @@ def add_by_excel(file_path):
         return f"Ошибка при обработке файла: {e}"
 
 
-def add_student_in_list(group_number, full_name):
+# def add_student_in_list(group_number, full_name):
+#     create_db_list_of_student()
+#
+#     conn = sqlite3.connect(db_path)
+#     cursor = conn.cursor()
+#
+#     cursor.execute("INSERT OR IGNORE INTO list_of_students (group_number, full_name) VALUES (?, ?)",
+#                    (group_number, full_name))
+#     student_id = cursor.lastrowid
+#     from students_methods import update_id_of_student_from_list
+#     update_id_of_student_from_list(full_name, group_number, student_id)
+#
+#     conn.commit()
+#     conn.close()
+
+
+def add_student_in_list(text):
     create_db_list_of_student()
+
+    students = text.split('\n')
 
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    cursor.execute("INSERT OR IGNORE INTO list_of_students (group_number, full_name) VALUES (?, ?)",
-                   (group_number, full_name))
-    student_id = cursor.lastrowid
-    from students_methods import update_id_of_student_from_list
-    update_id_of_student_from_list(full_name, group_number, student_id)
+    for student in students:
+        name_and_group = student.split(", ")
+        # 0 - имя, 1 - группа
+        cursor.execute("INSERT OR IGNORE INTO list_of_students (group_number, full_name) VALUES (?, ?)",
+                   (name_and_group[1], name_and_group[0]))
+        student_id = cursor.lastrowid
+        from students_methods import update_id_of_student_from_list
+        update_id_of_student_from_list(name_and_group[0], name_and_group[1], student_id)
 
     conn.commit()
     conn.close()

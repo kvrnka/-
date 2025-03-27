@@ -33,15 +33,15 @@ def start(message):
                          reply_markup = main_admin_keyboard())
     elif get_admin(tg_id) != None:
         bot.send_message(message.chat.id,
-                         f'Здравствуйте {message.from_user.first_name}. Вы уже зарегистрированы, как администратор. Выберите действие:',
+                         f'Здравствуйте {message.from_user.first_name}! Вы уже зарегистрированы, как администратор. Выберите действие:',
                          reply_markup = admin_keyboard())
     elif get_student_by_tg_id(tg_id) != None:
         bot.send_message(message.chat.id,
-                         f'Здравствуйте {message.from_user.first_name}. Вы уже зарегистрированы, как студент. Выберите действие:',
+                         f'Здравствуйте {message.from_user.first_name}! Вы уже зарегистрированы, как студент. Выберите действие:',
                          reply_markup = students_keyboard())
     else:
         bot.send_message(message.chat.id,
-                         f'Здравствуйте, {message.from_user.first_name}. Вы еще не зарегистрированы. Введите своё ФИО также, как написано в ведомости.')
+                         f'Здравствуйте, {message.from_user.first_name}! Вы еще не зарегистрированы. Введите своё ФИО также, как написано в ведомости.')
         bot.register_next_step_handler(message, process_fio)
 
 
@@ -89,11 +89,12 @@ def continue_registration(callback):
 def process_group(message):
     group = message.text
     if add_student(message.from_user.id, group):
-        bot.send_message(message.chat.id, "Ваши данные сохранены. Выберите следующее действие:",
+        bot.send_message(message.chat.id, "Ваши данные сохранены! Выберите следующее действие:",
                          reply_markup = students_keyboard())
     else:
         bot.send_message(message.chat.id,
-                         "Ваши данные сохранены, но вы не найдены в списке лектора. Проверьте, совпадают ли ваши группа и имя с ведомостью. Вы в любой момент можете изменить данные.\n"
+                         "Ваши данные сохранены, но вы не найдены в списке лектора.\n"
+                         "Проверьте, совпадают ли ваши группа и имя с ведомостью. Вы в любой момент можете изменить данные.\n"
                          "Выберите следующее действие:",
                          reply_markup = students_keyboard())
 
@@ -111,7 +112,8 @@ def process_new_admin(message):
         markup.add(types.InlineKeyboardButton('Я студент', callback_data = 'student'))
         markup.add(types.InlineKeyboardButton('Я преподователь или ассистент', callback_data = 'new_admin'))
         bot.send_message(message.chat.id,
-                         "Не удалось зарегистрироваться. Возможно, вы ввели неверный код, или код уже устарел. Выберите следующее действие:",
+                         "Не удалось зарегистрироваться. Возможно, вы ввели неверный код, или код уже устарел. \n"
+                         "Выберите следующее действие:",
                          reply_markup = markup)
 
 
@@ -123,7 +125,7 @@ def process_group_for_admin(message):
         groups += group + ' '
     groups = groups[:-1]
     add_admin(message.from_user.id, message.from_user.username, groups)
-    bot.send_message(message.chat.id, "Вы успешно зарегистрировались, теперь вам доступны права администратора",
+    bot.send_message(message.chat.id, "Вы успешно зарегистрировались, теперь вам доступны права администратора!",
                      reply_markup = admin_keyboard())
 
 

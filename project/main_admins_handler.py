@@ -48,8 +48,8 @@ def setup_main_admin_handlers(bot):
         else:
             bot.send_message(callback.message.chat.id,
                              f"Введите телеграм ник администратора, которого хотите удалить. "
-                             f"Если хотите удалить несколько администраторов, введите их ники через пробел.\n"
-                             f"Например: abc asd rht")
+                             f"Если хотите удалить несколько администраторов, введите их ники через запятую.\n"
+                             f"Например: petrov, ivanov, sidorov")
             bot.register_next_step_handler(callback.message, process_delete_admin)
 
     def process_create_password(message):
@@ -63,9 +63,14 @@ def setup_main_admin_handlers(bot):
         check = delete_admin_by_username(tg_nik)
         new_list = get_all_admin()
         if check:
-            bot.send_message(message.chat.id,
-                             f"Пользователи успешно удалены из администраторов. Новый список администраторов:\n"
-                             f"{new_list}", reply_markup = main_admin_keyboard())
+            if new_list:
+                bot.send_message(message.chat.id,
+                                 f"Пользователи успешно удалены из администраторов. Новый список администраторов:\n"
+                                 f"{new_list}", reply_markup = main_admin_keyboard())
+            else:
+                bot.send_message(message.chat.id,
+                                 f"Пользователи успешно удалены из администраторов. Теперь список администраторов пуст.",
+                                 reply_markup = main_admin_keyboard())
         else:
             bot.send_message(message.chat.id,
                              f"Не удалось удалить какого-то пользователя из администраторов. Список на данный момент: \n"
@@ -94,7 +99,9 @@ def setup_main_admin_handlers(bot):
     def change_handler(callback):
         if callback.data == 'add_new_student':
             bot.send_message(callback.message.chat.id,
-                             f"Введите имя и группу студента через запятую, например: Иванов Иван, 235")
+                             f"Введите имя и группу студента через запятую. \n"
+                             f"Если вы хотите внести в список сразу несколько студентов, то каждого студента записывайте с новой строки. \n"
+                             f"Например: \nИванов Иван, 235\n Петров Петр, 236\n Светланова Светлана, 234")
             bot.register_next_step_handler(callback.message, process_name_of_new_student)
         else:
             bot.send_message(callback.message.chat.id,
@@ -103,8 +110,7 @@ def setup_main_admin_handlers(bot):
 
     def process_name_of_new_student(message):
         str = message.text
-        name_and_group = str.split(", ")
-        add_student_in_list(name_and_group[1], name_and_group[0])
+        add_student_in_list(str)
         list_of_students = get_list_of_students()
         bot.send_message(message.chat.id, f"Список изменён:\n"
                                           f"{list_of_students}"
