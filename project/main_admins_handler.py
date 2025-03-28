@@ -5,6 +5,7 @@ from databases_methods.admins_methods import get_all_admin, delete_admin_by_user
 from databases_methods.list_of_students_methods import (add_by_excel, get_list_of_students, add_student_in_list,
                                                         delete_student_from_list)
 from databases_methods.key_for_admin import add_key
+from generator import generate_pdf
 
 
 logging.basicConfig(
@@ -71,6 +72,7 @@ def setup_main_admin_handlers(bot):
             password = message.text
             tg_id = message.from_user.id
             add_key(tg_id, password)
+            # найти ошибку
             bot.send_message(message.chat.id, f"Пароль сохранен!")
         except Exception as e:
             logging.error(f"Ошибка в process_create_password: {e}")
@@ -176,7 +178,8 @@ def setup_main_admin_handlers(bot):
         bot.send_message(callback.message.chat.id,
                          "Пришлите файл со списком студентов в формате, сделанный по следующим правилам:\n"
                          "1) Формат файла: .xlsx или .xls \n"
-                         '2) Таблица должна содержать два столбца: имена студентов (этот столбец должен иметь название "full_name"), номер группы (столбец должен называться "group_number")')
+                         '2) Таблица должна содержать два столбца: имена студентов (этот столбец должен иметь название "full_name"), номер группы (столбец должен называться "group_number")',
+                         reply_markup = main_admin_keyboard())
 
     @bot.message_handler(content_types = ['document'])
     def handle_document(message):
@@ -206,18 +209,49 @@ def setup_main_admin_handlers(bot):
             logging.error(f"Ошибка в handle_document: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
-    # @project.callback_query_handler(func = lambda callback: callback.data in ['create_task'])
-    # def create_task(callback):
-    #     try:
-    #         project.send_message(callback.message.chat.id, f"Введите название новой работы")
-    #         project.register_next_step_handler(callback.message, process_name_of_new_task)
-    #     except Exception as e:
-    #         logging.error(f"Ошибка в create_task: {e}")
-    #         project.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
-    #
-    #
-    # def process_name_of_new_task(message):
-    #     name = message.text
+    @bot.callback_query_handler(func = lambda callback: callback.data in ['create_task'])
+    def create_task(callback):
+        try:
+            bot.send_message(callback.message.chat.id, f"Введите название новой работы:")
+            bot.register_next_step_handler(callback.message, process_name_of_new_task)
+        except Exception as e:
+            logging.error(f"Ошибка в create_task: {e}")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+    def process_name_of_new_task(message):
+        try:
+            task_name = message.text
+            bot.send_message(message.chat.id, "Введите дедлайн (формат: ДД.ММ.ГГГГ ЧЧ:ММ):")
+            bot.register_next_step_handler(message, process_deadline_of_new_task, task_name)
+        except Exception as e:
+            logging.error(f"Ошибка в process_name_of_new_task: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+    def process_deadline_of_new_task(message, task_name):
+        try:
+            deadline = message.text
+            bot.send_message(message.chat.id,
+                             "Для кого предназначено задание? Введите номера групп через запятую (234, 235, 236) или напишите 'все':")
+            bot.register_next_step_handler(message, process_target_group_of_new_task, task_name, deadline)
+        except Exception as e:
+            logging.error(f"Ошибка в process_deadline_of_new_task: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+    def process_target_group_of_new_task(message, task_name, deadline):
+        try:
+            target_group = message.text
+            # Здесь можно добавить функцию для сохранения задания в базу данных
+            # save_task(task_name, deadline, target_group)  # Заглушка
+
+            generate_pdf([0, task_name, deadline, target_group], 4, [2, 3, 4, 5])
+
+            bot.send_message(
+                message.chat.id,
+                f"Задание успешно создано!\n\nНазвание: {task_name}\nДедлайн: {deadline}\nДля: {target_group}"
+            )
+        except Exception as e:
+            logging.error(f"Ошибка в process_target_group_of_new_task: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
 
     @bot.callback_query_handler(func = lambda callback: callback.data in ['list_of_task'])

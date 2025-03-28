@@ -38,7 +38,7 @@ setup_main_admin_handlers(bot)
 def start(message):
     try:
         tg_id = message.from_user.id
-        get_main_admin(tg_id)
+        # get_main_admin(tg_id)
 
         if get_main_admin(tg_id):
             bot.send_message(message.chat.id, f'Здравствуйте, {message.from_user.first_name}! Выберите действие:',

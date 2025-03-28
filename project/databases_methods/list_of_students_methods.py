@@ -1,8 +1,6 @@
 import sqlite3
 import os
 import pandas as pd
-# from users_methods import get_user
-# from students_methods import update_id_of_student_from_list
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_DIR = os.path.join(BASE_DIR, "../databases")
@@ -57,20 +55,26 @@ def add_by_excel(file_path):
         return f"Ошибка при обработке файла: {e}"
 
 
-# def add_student_in_list(group_number, full_name):
-#     create_db_list_of_student()
-#
-#     conn = sqlite3.connect(db_path)
-#     cursor = conn.cursor()
-#
-#     cursor.execute("INSERT OR IGNORE INTO list_of_students (group_number, full_name) VALUES (?, ?)",
-#                    (group_number, full_name))
-#     student_id = cursor.lastrowid
-#     from students_methods import update_id_of_student_from_list
-#     update_id_of_student_from_list(full_name, group_number, student_id)
-#
-#     conn.commit()
-#     conn.close()
+def get_students_by_group(group_number):
+    create_db_list_of_student()
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, group_number, full_name 
+        FROM list_of_students 
+        WHERE group_number = ?
+        ORDER BY full_name ASC
+    """, (group_number,))
+
+    students = cursor.fetchall()
+    conn.close()
+
+    return [
+        {"id": student[0], "group_number": student[1], "full_name": student[2]}
+        for student in students
+    ]
 
 
 def add_student_in_list(text):
