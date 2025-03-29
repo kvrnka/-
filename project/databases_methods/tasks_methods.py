@@ -16,7 +16,7 @@ def create_db_task():
     # Создаём таблицу, если её нет
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS tasks (
-        primary_key INTEGER AUTOINCREMENT,
+        primary_key INTEGER PRIMARY KEY AUTOINCREMENT,
         name_of_task TEXT,
         deadline TEXT,
         target_groups TEXT,
@@ -51,6 +51,7 @@ def add_task(name_of_task, deadline, target_groups):
 
 
 def get_task_by_pk(primary_key):
+    create_db_task()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -66,5 +67,16 @@ def get_task_by_pk(primary_key):
     return task
 
 
-def make_public():
-    pass
+def make_public(pk):
+    create_db_task()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+            UPDATE tasks
+            SET is_public = 1
+            WHERE primary_key = ?
+            """, (pk,))
+
+    conn.commit()
+    conn.close()

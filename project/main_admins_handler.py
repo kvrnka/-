@@ -5,6 +5,7 @@ from databases_methods.admins_methods import get_all_admin, delete_admin_by_user
 from databases_methods.list_of_students_methods import (add_by_excel, get_list_of_students, add_student_in_list,
                                                         delete_student_from_list)
 from databases_methods.key_for_admin import add_key
+from databases_methods.tasks_methods import add_task
 from generator import generate_pdf
 
 
@@ -244,11 +245,33 @@ def setup_main_admin_handlers(bot):
             # save_task(task_name, deadline, target_group)  # Заглушка
 
             generate_pdf([0, task_name, deadline, target_group], 4, [2, 3, 4, 5])
+            pk = add_task(task_name, deadline, target_group)
 
-            bot.send_message(
-                message.chat.id,
-                f"Задание успешно создано!\n\nНазвание: {task_name}\nДедлайн: {deadline}\nДля: {target_group}"
-            )
+            pdf_path_task = f"task/{task_name}/{task_name}_system_of_equations.pdf"
+            pdf_path_ans = f"task/{task_name}/{task_name}_system_of_equations_answer.pdf"
+
+            if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans):
+                with open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2:
+                    bot.send_document(message.chat.id, pdf1, caption="Задания")
+                    bot.send_document(message.chat.id, pdf2, caption = "Ответы")
+                bot.send_message(
+                    message.chat.id,
+                    f'Задание успешно создано!\n\nНазвание: {task_name}\nДедлайн: {deadline}\nДля: {target_group}\n\nХотите опубликовать задание? (введите "Да" или "Нет")'
+                )
+                bot.register_next_step_handler(message, process_public_task, pk)
+            else:
+                bot.send_message(message.chat.id, "Файлы не найдены", reply_markup = main_admin_keyboard())
+        except Exception as e:
+            logging.error(f"Ошибка в process_target_group_of_new_task: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+
+    def process_public_task(message, pk):
+        try:
+            if message.text.lower() == 'да':
+                pass
+            else:
+                bot.send_message(message.chat.id, f'Вы всегда можете опубликовать задание! Для этого нажмите "Просмотр заданий" и выберите нужное задание.', reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_target_group_of_new_task: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
