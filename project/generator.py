@@ -83,102 +83,9 @@ def generate_eq_for_variant(count_of_task, count_of_eq):
     return latex_code_one_variants, latex_code_ans
 
 
-# def generate_tex(task_info, count_of_task, count_of_eq):
-#     latex_code_for_all_task = (
-#             r'\documentclass[a4paper,12pt]{article}' + '\n'
-#                                                        r'\usepackage{amsmath, amsthm, amssymb}' + '\n'
-#                                                                                                   r'\usepackage[T1,T2A]{fontenc}' + '\n'
-#                                                                                                                                     r'\usepackage[utf8]{inputenc}' + '\n'
-#                                                                                                                                                                      r'\usepackage[english, russian]{babel}' + '\n'
-#                                                                                                                                                                                                                r'\begin{document}' + '\n'
-#     )
-#     latex_code_for_all_answers = latex_code_for_all_task
-#     latex_code_for_all_answers += (
-#             r'\begin{center}' + '\n'
-#                                 r'Ответы' + '\n'
-#                                             r'\end{center}' + '\n'
-#                                                               '\n'
-#     )
-#
-#     # count_of_task - список, где на i-ом месте стоит размер i+1 системы
-#     # task_info - информация из бд
-#
-#     group = task_info[3]
-#     cnt_of_students = 0
-#
-#     # if group == 'все':
-#     #     # groups =
-#     #     pass
-#     # else:
-#     #     groups = group.split(", ")
-#
-#     groups = group.split(", ")
-#
-#     for group_of_students in groups:
-#         students = get_students_by_group(
-#             int(group_of_students))  # получаем студентов из группы в алфавитном порядке
-#         cnt_of_students += len(students)
-#         for student in students:
-#             name_of_variant = (
-#                     r'\begin{center}' + '\n'
-#                                         rf'\textbf{{Вариант --- {student["full_name"]}}}' + '\n'
-#                                                                                             r'\end{center}' + '\n'
-#                                                                                                               '\n'
-#             )
-#             latex_code_for_all_task += name_of_variant
-#             latex_code_for_all_answers += name_of_variant
-#
-#             task_latex, ans_latex = generate_eq_for_variant(count_of_task, count_of_eq)
-#             latex_code_for_all_task += task_latex + r'\newpage'
-#             latex_code_for_all_answers += ans_latex
-#
-#     latex_code_for_all_task += r'\end{document}' + '\n'
-#     latex_code_for_all_answers += r'\end{document}' + '\n'
-#     return latex_code_for_all_task, latex_code_for_all_answers
-#
-#
-# def generate_pdf(task_info, count_of_task, count_of_eq):
-#     task_name = task_info[1]
-#     task_folder = os.path.join("task", task_name)
-#
-#     # Если папка с таким названием не существует, создаем её
-#     if not os.path.exists(task_folder):
-#         os.makedirs(task_folder)
-#
-#     latex_code, latex_code_for_ans = generate_tex(task_info, count_of_task, count_of_eq)
-#
-#     tex_file_path = os.path.join(task_folder, f"{task_name}_system_of_equations.tex")
-#     tex_ans_file_path = os.path.join(task_folder, f"{task_name}_system_of_equations_answer.tex")
-#
-#     with open(tex_file_path, "w") as file:
-#         file.write(latex_code)
-#
-#     with open(tex_ans_file_path, "w") as file:
-#         file.write(latex_code_for_ans)
-#
-#     # Запускаем компиляцию PDF для каждого файла в нужной директории
-#     subprocess.run(["pdflatex", "-output-directory", task_folder, tex_file_path])
-#     subprocess.run(["pdflatex", "-output-directory", task_folder, tex_ans_file_path])
-#
-#     # Удаление временных файлов после компиляции
-#     for ext in [".tex", ".aux", ".log", ".out"]:
-#         for filename in [tex_file_path, tex_ans_file_path]:
-#             temp_file = f"{filename[:-4]}{ext}"
-#             if os.path.exists(temp_file):
-#                 os.remove(temp_file)
-#
-#     pdf_file_path = os.path.join(task_folder, f"{task_name}_system_of_equations.pdf")
-#     pdf_ans_file_path = os.path.join(task_folder, f"{task_name}_system_of_equations_answer.pdf")
-#
-#     # Проверим, существуют ли PDF файлы
-#     if not os.path.exists(pdf_file_path):
-#         print(f"PDF файл {pdf_file_path} не был создан.")
-#     if not os.path.exists(pdf_ans_file_path):
-#         print(f"PDF файл {pdf_ans_file_path} не был создан.")
-
-
+# добавить обработку, когда для всех
 def generate_tex(task_info, count_of_task, count_of_eq):
-    latex_code_for_all_task = (
+    preambula = (
             r'\documentclass[a4paper,12pt]{article}' + '\n'
                                                        r'\usepackage{amsmath, amsthm, amssymb}' + '\n'
                                                                                                   r'\usepackage[T1,T2A]{fontenc}' + '\n'
@@ -186,13 +93,16 @@ def generate_tex(task_info, count_of_task, count_of_eq):
                                                                                                                                                                      r'\usepackage[english, russian]{babel}' + '\n'
                                                                                                                                                                                                                r'\begin{document}' + '\n'
     )
-    latex_code_for_all_answers = latex_code_for_all_task
+    latex_code_for_all_task = preambula
+    latex_code_for_all_answers = preambula
     latex_code_for_all_answers += (
             r'\begin{center}' + '\n'
                                 r'Ответы' + '\n'
                                             r'\end{center}' + '\n'
                                                               '\n'
     )
+
+    end_doc = r'\end{document}' + '\n'
 
     group = task_info[3]
     cnt_of_students = 0
@@ -202,7 +112,7 @@ def generate_tex(task_info, count_of_task, count_of_eq):
     all_task_latex = ""  # для общего файла с заданиями
     all_answer_latex = ""  # для общего файла с ответами
     student_task_latex = {}  # для заданий, сгруппированных по студентам
-    student_answer_latex = {}  # для ответов, сгруппированных по студентам
+    group_answer_latex = {}  # для ответов, сгруппированных по группам
 
     # Подготовка для каждого студента
     for group_of_students in groups:
@@ -210,36 +120,47 @@ def generate_tex(task_info, count_of_task, count_of_eq):
             int(group_of_students))  # получаем студентов из группы в алфавитном порядке
         cnt_of_students += len(students)
 
-        # Для студентов
+        name_for_ans = (
+                r'\begin{center}' + '\n'
+                                    rf'\textbf{{Группа - {group_of_students}}}' + '\n'
+                                                                                  r'\end{center}' + '\n'
+                                                                                                    '\n'
+        )
+
+        all_answer_latex += name_for_ans
+
+        ans_for_current_group = preambula + name_for_ans
+
         for student in students:
             student_name = student["full_name"]
             name_of_variant = (
                     r'\begin{center}' + '\n'
-                                        rf'\textbf{{Вариант --- {student_name}}}' + '\n'
-                                                                                    r'\end{center}' + '\n'
-                                                                                                      '\n'
+                                        rf'\textbf{{Вариант - {student_name}}}' + '\n'
+                                                                                  r'\end{center}' + '\n'
+                                                                                                    '\n'
             )
 
             # Добавляем задания для общего файла и для конкретного студента
-            all_task_latex += r'\newpage' + name_of_variant  # Каждое задание на новой странице
-            all_answer_latex += r'\newpage' + name_of_variant
-            student_task_latex[student_name] = name_of_variant
-            student_answer_latex[student_name] = name_of_variant
+            all_task_latex += name_of_variant
+            all_answer_latex += name_of_variant
+            student_task_latex[student_name] = preambula + name_of_variant
+            ans_for_current_group += name_of_variant
 
             task_latex, ans_latex = generate_eq_for_variant(count_of_task, count_of_eq)
 
-            all_task_latex += task_latex
+            all_task_latex += task_latex + r'\newpage'
             all_answer_latex += ans_latex
-            student_task_latex[student_name] += task_latex
-            student_answer_latex[student_name] += ans_latex
+            student_task_latex[student_name] += task_latex + end_doc
+            ans_for_current_group += ans_latex
+        group_answer_latex[group_of_students] = ans_for_current_group + end_doc
 
     latex_code_for_all_task += all_task_latex
-    latex_code_for_all_answers += all_answer_latex
+    latex_code_for_all_answers += all_answer_latex + r'\newpage'
 
     latex_code_for_all_task += r'\end{document}' + '\n'
     latex_code_for_all_answers += r'\end{document}' + '\n'
 
-    return latex_code_for_all_task, latex_code_for_all_answers, student_task_latex, student_answer_latex
+    return latex_code_for_all_task, latex_code_for_all_answers, student_task_latex, group_answer_latex
 
 
 def generate_pdf(task_info, count_of_task, count_of_eq):
@@ -262,57 +183,25 @@ def generate_pdf(task_info, count_of_task, count_of_eq):
         file.write(latex_code_for_ans)
 
     # Компиляция общего PDF для всех заданий
-    subprocess.run(["pdflatex", tex_file_path])
-    subprocess.run(["pdflatex", tex_ans_file_path])
+    subprocess.run(["pdflatex", "-output-directory", task_folder, tex_file_path])
+    subprocess.run(["pdflatex", "-output-directory", task_folder, tex_ans_file_path])
 
-    # Генерация и перемещение файлов для каждого студента
     for student_name, student_tex_content in student_task_latex.items():
-        # Преамбула для каждого студента
-        student_latex_code = (
-                r'\documentclass[a4paper,12pt]{article}' + '\n'
-                                                           r'\usepackage{amsmath, amsthm, amssymb}' + '\n'
-                                                                                                      r'\usepackage[T1,T2A]{fontenc}' + '\n'
-                                                                                                                                        r'\usepackage[utf8]{inputenc}' + '\n'
-                                                                                                                                                                         r'\usepackage[english, russian]{babel}' + '\n'
-                                                                                                                                                                                                                   r'\begin{document}' + '\n'
-        )
-
-        # Добавляем задания для студента
-        student_latex_code += student_tex_content
-        student_latex_code += r'\end{document}' + '\n'
-
+        student_latex_code = student_tex_content
         student_tex_file = os.path.join(task_folder, f"{task_name}_{student_name}.tex")
         with open(student_tex_file, "w") as f:
             f.write(student_latex_code)
+        subprocess.run(["pdflatex", "-output-directory", task_folder, student_tex_file])
 
-        subprocess.run(["pdflatex", student_tex_file])
-
-    # Генерация PDF для групповых ответов
     for group, group_answer in student_answer_latex.items():
         group_tex_file = os.path.join(task_folder, f"{task_name}_ans_for_group_{group}.tex")
-
-        # Преамбула для групповых ответов
-        group_latex_code = (
-                r'\documentclass[a4paper,12pt]{article}' + '\n'
-                                                           r'\usepackage{amsmath, amsthm, amssymb}' + '\n'
-                                                                                                      r'\usepackage[T1,T2A]{fontenc}' + '\n'
-                                                                                                                                        r'\usepackage[utf8]{inputenc}' + '\n'
-                                                                                                                                                                         r'\usepackage[english, russian]{babel}' + '\n'
-                                                                                                                                                                                                                   r'\begin{document}' + '\n'
-        )
-
-        group_latex_code += group_answer
-        group_latex_code += r'\end{document}' + '\n'
-
+        group_latex_code = group_answer
         with open(group_tex_file, "w") as f:
             f.write(group_latex_code)
-
-        subprocess.run(["pdflatex", group_tex_file])
+        subprocess.run(["pdflatex", "-output-directory", task_folder, group_tex_file])
 
     # Удаление временных файлов после компиляции
-    os.remove(tex_file_path)
-    os.remove(f"{tex_file_path[:-4]}.aux")
-    os.remove(f"{tex_file_path[:-4]}.log")
-    os.remove(tex_ans_file_path)
-    os.remove(f"{tex_ans_file_path[:-4]}.aux")
-    os.remove(f"{tex_ans_file_path[:-4]}.log")
+    for file in os.listdir(task_folder):
+        if file.endswith((".aux", ".tex", ".log")):
+            file_path = os.path.join(task_folder, file)  # Создаём полный путь
+            os.remove(file_path)
