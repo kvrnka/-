@@ -1,32 +1,32 @@
 import logging
 from telebot import types
 import os
+import re
 from databases_methods.admins_methods import get_all_admin, delete_admin_by_username
 from databases_methods.list_of_students_methods import (add_by_excel, get_list_of_students, add_student_in_list,
                                                         delete_student_from_list)
 from databases_methods.key_for_admin import add_key
-from databases_methods.tasks_methods import add_task
+from databases_methods.tasks_methods import (add_task, make_public, get_unpublished_tasks, get_published_tasks,
+                                             update_task_deadline, delete_task)
 from generator import generate_pdf
 
-
 logging.basicConfig(
-    filename= "bot_errors.log",
-    level=logging.ERROR,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    filename = "bot_errors.log",
+    level = logging.ERROR,
+    format = "%(asctime)s - %(levelname)s - %(message)s",
 )
 
 
 # клавиатурка
 def main_admin_keyboard():
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton('Изменить список студентов', callback_data = 'edit_list_of_students'))
-        markup.add(types.InlineKeyboardButton('Просмотр администраторов', callback_data = 'list_of_admin'))
-        markup.add(
-            types.InlineKeyboardButton('Создать новую работу', callback_data = 'create_task'))
-        markup.add(
-            types.InlineKeyboardButton('Просмотр заданий', callback_data = 'list_of_task'))
-        return markup
-
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('Изменить список студентов', callback_data = 'edit_list_of_students'))
+    markup.add(types.InlineKeyboardButton('Просмотр администраторов', callback_data = 'list_of_admin'))
+    markup.add(
+        types.InlineKeyboardButton('Создать новую работу', callback_data = 'create_task'))
+    markup.add(
+        types.InlineKeyboardButton('Просмотр заданий', callback_data = 'list_of_task'))
+    return markup
 
 
 def setup_main_admin_handlers(bot):
@@ -231,6 +231,11 @@ def setup_main_admin_handlers(bot):
     def process_deadline_of_new_task(message, task_name):
         try:
             deadline = message.text
+            pattern = r"^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$"
+            if not re.match(pattern, deadline):
+                bot.send_message(message.chat.id, "Некорректный формат! Введите дату в формате ДД.ММ.ГГГГ ЧЧ:ММ")
+                bot.register_next_step_handler(message, process_deadline_of_new_task, task_name)
+                return
             bot.send_message(message.chat.id,
                              "Для кого предназначено задание? Введите номера групп через запятую (234, 235, 236) или напишите 'все':")
             bot.register_next_step_handler(message, process_target_group_of_new_task, task_name, deadline)
@@ -241,8 +246,6 @@ def setup_main_admin_handlers(bot):
     def process_target_group_of_new_task(message, task_name, deadline):
         try:
             target_group = message.text
-            # Здесь можно добавить функцию для сохранения задания в базу данных
-            # save_task(task_name, deadline, target_group)  # Заглушка
 
             generate_pdf([0, task_name, deadline, target_group], 4, [2, 3, 4, 5])
             pk = add_task(task_name, deadline, target_group)
@@ -252,7 +255,7 @@ def setup_main_admin_handlers(bot):
 
             if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans):
                 with open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2:
-                    bot.send_document(message.chat.id, pdf1, caption="Задания")
+                    bot.send_document(message.chat.id, pdf1, caption = "Задания")
                     bot.send_document(message.chat.id, pdf2, caption = "Ответы")
                 bot.send_message(
                     message.chat.id,
@@ -265,18 +268,96 @@ def setup_main_admin_handlers(bot):
             logging.error(f"Ошибка в process_target_group_of_new_task: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
-
     def process_public_task(message, pk):
         try:
             if message.text.lower() == 'да':
-                pass
+                make_public(pk)
+                bot.send_message(message.chat.id, f'Вы опубликовали задание! Теперь оно доступно студентам.',
+                                 reply_markup = main_admin_keyboard())
             else:
-                bot.send_message(message.chat.id, f'Вы всегда можете опубликовать задание! Для этого нажмите "Просмотр заданий" и выберите нужное задание.', reply_markup = main_admin_keyboard())
+                bot.send_message(message.chat.id,
+                                 f'Вы всегда можете опубликовать задание! Для этого нажмите "Просмотр заданий" и выберите нужное задание.',
+                                 reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_target_group_of_new_task: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
-
     @bot.callback_query_handler(func = lambda callback: callback.data in ['list_of_task'])
     def get_list_of_task(callback):
-        pass
+        try:
+            unpublish = get_unpublished_tasks()
+            publish = get_published_tasks()
+            text = ''
+            if unpublish:
+                text = f'Неопубликованные задания:\n'
+                for task in unpublish:
+                    text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nДата создания: {task[4]}\nНомер: {task[0]}\n\n'
+            if publish:
+                text += f'Опубликованные задания:\n'
+                for task in publish:
+                    text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nДата создания: {task[4]}\nНомер: {task[0]}\n\n'
+
+            text += f'Выберите действие из предложенных или нажмите /start:'
+
+            if unpublish or publish:
+                markup = types.InlineKeyboardMarkup()
+                markup.add(
+                    types.InlineKeyboardButton('Изменить дедлайн', callback_data = 'change_task_deadline'))
+                markup.add(
+                    types.InlineKeyboardButton('Опубликовать задание', callback_data = 'make_public_task'))
+                markup.add(
+                    types.InlineKeyboardButton('Удалить задание', callback_data = 'delete_task'))
+                bot.send_message(callback.message.chat.id, text, reply_markup = markup)
+            else:
+                bot.send_message(callback.message.chat.id, "Нет созданных работ. Выберите действие:",
+                                 reply_markup = main_admin_keyboard())
+        except Exception as e:
+            logging.error(f"Ошибка в get_list_of_task: {e}")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+    @bot.callback_query_handler(
+        func = lambda callback: callback.data in ['change_task_deadline', 'make_public_task',
+                                                  'delete_task'])
+    def change_task_information(callback):
+        try:
+            bot.send_message(callback.message.chat.id, "Введите номер задания:")
+            if callback.data == 'change_task_deadline':
+                bot.register_next_step_handler(callback.message, get_task_number, 'change_task_deadline')
+            elif callback.data == 'make_public_task':
+                bot.register_next_step_handler(callback.message, get_task_number, 'make_public_task')
+            else:
+                bot.register_next_step_handler(callback.message, get_task_number, 'delete_task')
+        except Exception as e:
+            logging.error(f"Ошибка в change_task_information: {e}")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+    def get_task_number(message, action):
+        try:
+            task_id = message.text
+            if action == 'change_task_deadline':
+                bot.send_message(message.chat.id, "Введите новый дедлайн (формат: ДД.ММ.ГГГГ ЧЧ:ММ): ")
+                bot.register_next_step_handler(message, process_change_deadline, task_id)
+            elif action == 'make_public_task':
+                make_public(task_id)
+                bot.send_message(message.chat.id, f'Задание опубликовано!', reply_markup = main_admin_keyboard())
+            else:
+                delete_task(task_id)
+                bot.send_message(message.chat.id, f'Задание удалено', reply_markup = main_admin_keyboard())
+        except Exception as e:
+            logging.error(f"Ошибка в get_task_number: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+    def process_change_deadline(message, task_id):
+        try:
+            new_deadline = message.text
+            pattern = r"^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$"
+            if not re.match(pattern, new_deadline):
+                bot.send_message(message.chat.id, "Некорректный формат! Введите дату в формате ДД.ММ.ГГГГ ЧЧ:ММ")
+                bot.register_next_step_handler(message, process_change_deadline, task_id)
+                return
+            update_task_deadline(task_id, new_deadline)
+            # здесь по хорошему снова список кидать
+            bot.send_message(message.chat.id, "Дедлайн обновлён!", reply_markup = main_admin_keyboard())
+        except Exception as e:
+            logging.error(f"Ошибка в process_change_deadline: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")

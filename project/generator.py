@@ -2,7 +2,7 @@ import random
 import sympy as sp
 import subprocess
 import os
-from databases_methods.list_of_students_methods import get_students_by_group
+from databases_methods.list_of_students_methods import get_students_by_group, get_unique_group_numbers
 
 
 def from_equations_to_latex(equations):
@@ -105,9 +105,12 @@ def generate_tex(task_info, count_of_task, count_of_eq):
     end_doc = r'\end{document}' + '\n'
 
     group = task_info[3]
-    cnt_of_students = 0
 
-    groups = group.split(", ")
+    if group.lower() == 'все':
+        groups = get_unique_group_numbers()
+    else:
+        groups = group.split(", ")
+        groups = sorted(groups)
 
     all_task_latex = ""  # для общего файла с заданиями
     all_answer_latex = ""  # для общего файла с ответами
@@ -118,7 +121,6 @@ def generate_tex(task_info, count_of_task, count_of_eq):
     for group_of_students in groups:
         students = get_students_by_group(
             int(group_of_students))  # получаем студентов из группы в алфавитном порядке
-        cnt_of_students += len(students)
 
         name_for_ans = (
                 r'\begin{center}' + '\n'
@@ -135,22 +137,22 @@ def generate_tex(task_info, count_of_task, count_of_eq):
             student_name = student["full_name"]
             name_of_variant = (
                     r'\begin{center}' + '\n'
-                                        rf'\textbf{{Вариант - {student_name}}}' + '\n'
+                                        rf'\textbf{{Вариант - {student_name}, группа {group_of_students}}}' + '\n'
                                                                                   r'\end{center}' + '\n'
                                                                                                     '\n'
             )
-
+            key_for_student = f"{student_name}_{group_of_students}"
             # Добавляем задания для общего файла и для конкретного студента
             all_task_latex += name_of_variant
             all_answer_latex += name_of_variant
-            student_task_latex[student_name] = preambula + name_of_variant
+            student_task_latex[key_for_student] = preambula + name_of_variant
             ans_for_current_group += name_of_variant
 
             task_latex, ans_latex = generate_eq_for_variant(count_of_task, count_of_eq)
 
             all_task_latex += task_latex + r'\newpage'
             all_answer_latex += ans_latex
-            student_task_latex[student_name] += task_latex + end_doc
+            student_task_latex[key_for_student] += task_latex + end_doc
             ans_for_current_group += ans_latex
         group_answer_latex[group_of_students] = ans_for_current_group + end_doc
 
