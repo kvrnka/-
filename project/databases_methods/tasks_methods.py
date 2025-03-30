@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import shutil
 from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -67,7 +68,12 @@ def get_unpublished_tasks():
 
     sorted_tasks = sorted(tasks, key = parse_deadline)
 
-    return sorted_tasks
+    text = ''
+
+    for task in sorted_tasks:
+        text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nНомер: {task[0]}\n\n'
+
+    return text
 
 
 def get_published_tasks():
@@ -87,7 +93,12 @@ def get_published_tasks():
 
     sorted_tasks = sorted(tasks, key = parse_deadline)
 
-    return sorted_tasks
+    text = ''
+
+    for task in sorted_tasks:
+        text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nНомер: {task[0]}\n\n'
+
+    return text
 
 
 def get_task_by_pk(primary_key):
@@ -141,11 +152,25 @@ def delete_task(task_id):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Удаляем задание по его id
+    cursor.execute("SELECT name_of_task FROM tasks WHERE primary_key = ?", (task_id,))
+    result = cursor.fetchone()
+
     cursor.execute("""
-    DELETE FROM tasks
-    WHERE primary_key = ?
-    """, (task_id,))
+        DELETE FROM tasks
+        WHERE primary_key = ?
+        """, (task_id,))
 
     conn.commit()
     conn.close()
+
+    if result:
+        task_name = result[0]
+        TASK_DIR = os.path.join(BASE_DIR, "..", "task")
+        task_folder = os.path.join(TASK_DIR, task_name)
+        if os.path.exists(task_folder):
+            try:
+                shutil.rmtree(task_folder)
+            except Exception as e:
+                print(f"Ошибка при удалении папки '{task_folder}': {e}")
+        else:
+            print(f"Ошибка: Папка '{task_folder}' не найдена.")

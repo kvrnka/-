@@ -246,8 +246,35 @@ def setup_main_admin_handlers(bot):
     def process_target_group_of_new_task(message, task_name, deadline):
         try:
             target_group = message.text
+            bot.send_message(
+                message.chat.id,
+                "Введите размер системы для каждой задачи в варианте.\n\n"
+                "Например, если в каждом варианте должно быть 2 задачи: первая — размером 2×2, вторая — 3×3, "
+                "то введите: \"2, 3\"."
+            )
+            bot.register_next_step_handler(message, process_system_size, task_name, deadline, target_group)
+        except Exception as e:
+            logging.error(f"Ошибка в process_target_group_of_new_task: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
-            generate_pdf([0, task_name, deadline, target_group], 4, [2, 3, 4, 5])
+    def process_system_size(message, task_name, deadline, target_group):
+        try:
+            system_size = message.text.strip()
+            pattern = r"(\d+)(,\s*\d+)*"
+            if not re.fullmatch(pattern, system_size):
+                bot.send_message(message.chat.id,
+                                 f'Некорректный формат! Введите через запятую и пробел (например "2, 3, 4")')
+                bot.register_next_step_handler(message, process_system_size, task_name, deadline, target_group)
+                return
+
+            sizes_of_eq = [int(size.strip()) for size in system_size.split(",")]
+            if len(sizes_of_eq) > 20 or sum(sizes_of_eq) > 100:
+                bot.send_message(message.chat.id,
+                                 f'Слишком большое количество заданий или слишком большие размеры систем! Попробуйте ввести меньше параметров')
+                bot.register_next_step_handler(message, process_system_size, task_name, deadline, target_group)
+                return
+
+            generate_pdf([0, task_name, deadline, target_group], len(sizes_of_eq), sizes_of_eq)
             pk = add_task(task_name, deadline, target_group)
 
             pdf_path_task = f"task/{task_name}/{task_name}_system_of_equations.pdf"
@@ -265,7 +292,7 @@ def setup_main_admin_handlers(bot):
             else:
                 bot.send_message(message.chat.id, "Файлы не найдены", reply_markup = main_admin_keyboard())
         except Exception as e:
-            logging.error(f"Ошибка в process_target_group_of_new_task: {e}")
+            logging.error(f"Ошибка в process_system_size: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
     def process_public_task(message, pk):
@@ -280,7 +307,7 @@ def setup_main_admin_handlers(bot):
                                  reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_target_group_of_new_task: {e}")
-            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.", reply_markup = main_admin_keyboard())
 
     @bot.callback_query_handler(func = lambda callback: callback.data in ['list_of_task'])
     def get_list_of_task(callback):
@@ -289,13 +316,9 @@ def setup_main_admin_handlers(bot):
             publish = get_published_tasks()
             text = ''
             if unpublish:
-                text = f'Неопубликованные задания:\n'
-                for task in unpublish:
-                    text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nДата создания: {task[4]}\nНомер: {task[0]}\n\n'
+                text = f'Неопубликованные задания:\n' + unpublish
             if publish:
-                text += f'Опубликованные задания:\n'
-                for task in publish:
-                    text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nДата создания: {task[4]}\nНомер: {task[0]}\n\n'
+                text += f'Опубликованные задания:\n' + publish
 
             text += f'Выберите действие из предложенных или нажмите /start:'
 
