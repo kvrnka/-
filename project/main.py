@@ -11,10 +11,10 @@ from admins_handler import admin_keyboard, setup_admin_handlers
 from main_admins_handler import main_admin_keyboard, setup_main_admin_handlers
 
 from databases_methods.main_admin_methods import get_main_admin
-from databases_methods.users_methods import add_user, get_user
+from databases_methods.users_methods import add_user
 from databases_methods.students_methods import add_student
 from databases_methods.key_for_admin import search_key
-from databases_methods.students_methods import update_student_info, get_student_by_tg_id
+from databases_methods.students_methods import get_student_by_tg_id
 from databases_methods.admins_methods import add_admin, get_admin
 from dotenv import load_dotenv
 
@@ -45,22 +45,24 @@ def start(message):
         if get_main_admin(tg_id):
             bot.send_message(message.chat.id, f'Здравствуйте, {message.from_user.first_name}! Выберите действие:',
                              reply_markup = main_admin_keyboard())
-        elif get_admin(tg_id) != None:
+        elif get_admin(tg_id):
             bot.send_message(message.chat.id,
-                             f'Здравствуйте {message.from_user.first_name}! Вы уже зарегистрированы, как администратор. Выберите действие:',
+                             f'Здравствуйте {message.from_user.first_name}! '
+                             f'Вы уже зарегистрированы, как администратор. Выберите действие:',
                              reply_markup = admin_keyboard())
-        elif get_student_by_tg_id(tg_id) != None:
+        elif get_student_by_tg_id(tg_id):
             bot.send_message(message.chat.id,
-                             f'Здравствуйте {message.from_user.first_name}! Вы уже зарегистрированы, как студент. Выберите действие:',
+                             f'Здравствуйте {message.from_user.first_name}! '
+                             f'Вы уже зарегистрированы, как студент. Выберите действие:',
                              reply_markup = students_keyboard())
         else:
             bot.send_message(message.chat.id,
-                             f'Здравствуйте, {message.from_user.first_name}! Вы еще не зарегистрированы. Введите своё ФИО также, как написано в ведомости.')
+                             f'Здравствуйте, {message.from_user.first_name}! '
+                             f'Вы еще не зарегистрированы. Введите своё ФИО также, как написано в ведомости.')
             bot.register_next_step_handler(message, process_fio)
     except Exception as e:
         logging.error(f"Ошибка в команде /start: {e}")
         bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз позже.")
-
 
 
 # узнаем фио пользователя
@@ -88,7 +90,7 @@ def process_fio(message):
 
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton('Я студент', callback_data = 'student'))
-        markup.add(types.InlineKeyboardButton('Я преподователь или ассистент', callback_data = 'new_admin'))
+        markup.add(types.InlineKeyboardButton('Я преподаватель или ассистент', callback_data = 'new_admin'))
 
         bot.send_message(message.chat.id, f"Спасибо, {first_name}! Ваши данные сохранены. Выберите, кем вы являетесь:",
                          reply_markup = markup)
@@ -117,12 +119,14 @@ def process_group(message):
     try:
         group = message.text
         if add_student(message.from_user.id, group):
-            bot.send_message(message.chat.id, "Ваши данные сохранены, вы найдены в списке лектора! Выберите следующее действие:",
+            bot.send_message(message.chat.id, "Ваши данные сохранены, вы найдены в списке лектора! "
+                                              "Выберите следующее действие:",
                              reply_markup = students_keyboard())
         else:
             bot.send_message(message.chat.id,
                              "Ваши данные сохранены, но вы не найдены в списке лектора.\n"
-                             "Проверьте, совпадают ли ваши группа и имя с ведомостью. Вы в любой момент можете изменить данные.\n"
+                             "Проверьте, совпадают ли ваши группа и имя с ведомостью. "
+                             "Вы в любой момент можете изменить данные.\n"
                              "Выберите следующее действие:",
                              reply_markup = students_keyboard())
     except Exception as e:
@@ -130,7 +134,6 @@ def process_group(message):
         bot.send_message(message.chat.id, "Произошла ошибка при обработке группы. Попробуйте еще раз.")
 
 
-# регаемся как ассистент
 def process_new_admin(message):
     try:
         key = message.text
@@ -142,7 +145,7 @@ def process_new_admin(message):
         else:
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton('Я студент', callback_data = 'student'))
-            markup.add(types.InlineKeyboardButton('Я преподователь или ассистент', callback_data = 'new_admin'))
+            markup.add(types.InlineKeyboardButton('Я преподаватель или ассистент', callback_data = 'new_admin'))
             bot.send_message(message.chat.id,
                              "Не удалось зарегистрироваться. Возможно, вы ввели неверный код, или код уже устарел. \n"
                              "Выберите следующее действие:",
@@ -154,12 +157,8 @@ def process_new_admin(message):
 
 def process_group_for_admin(message):
     try:
-        groups = message.text
-        list_of_groups = groups.split()
-        groups = ''
-        for group in list_of_groups:
-            groups += group + ' '
-        groups = groups[:-1]
+        groups = message.text.strip
+        # проверить, что вводится как надо
         add_admin(message.from_user.id, message.from_user.username, groups)
         bot.send_message(message.chat.id, "Вы успешно зарегистрировались, теперь вам доступны права администратора!",
                          reply_markup = admin_keyboard())

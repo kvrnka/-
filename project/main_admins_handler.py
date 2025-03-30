@@ -17,7 +17,6 @@ logging.basicConfig(
 )
 
 
-# клавиатурка
 def main_admin_keyboard():
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton('Изменить список студентов', callback_data = 'edit_list_of_students'))
@@ -54,7 +53,8 @@ def setup_main_admin_handlers(bot):
         try:
             if callback.data == 'add_new_admin':
                 bot.send_message(callback.message.chat.id,
-                                 f"Чтобы добавить новых администраторов, вам нужно создать пароль, который будет действовать 48ч. "
+                                 f"Чтобы добавить новых администраторов, вам нужно создать пароль, "
+                                 f"который будет действовать 48ч. "
                                  f"Выдайте этот пароль людям, которые должны зарегистрироваться, как администраторы. \n"
                                  f"Введите пароль:")
                 bot.register_next_step_handler(callback.message, process_create_password)
@@ -62,7 +62,7 @@ def setup_main_admin_handlers(bot):
                 bot.send_message(callback.message.chat.id,
                                  f"Введите телеграм ник администратора без знака '@', которого хотите удалить. "
                                  f"Если хотите удалить несколько администраторов, введите их ники через запятую.\n"
-                                 f"Например: petrov, ivanov, sidorov")
+                                 f"Например: petrov, ivanov")
                 bot.register_next_step_handler(callback.message, process_delete_admin)
         except Exception as e:
             logging.error(f"Ошибка в change_admins: {e}")
@@ -91,11 +91,13 @@ def setup_main_admin_handlers(bot):
                                      f"{new_list}", reply_markup = main_admin_keyboard())
                 else:
                     bot.send_message(message.chat.id,
-                                     f"Пользователи успешно удалены из администраторов. Теперь список администраторов пуст.",
+                                     f"Пользователи успешно удалены из администраторов. "
+                                     f"Теперь список администраторов пуст.",
                                      reply_markup = main_admin_keyboard())
             else:
                 bot.send_message(message.chat.id,
-                                 f"Не удалось удалить какого-то пользователя из администраторов. Список на данный момент: \n"
+                                 f"Не удалось удалить какого-то пользователя из администраторов. "
+                                 f"Список на данный момент: \n"
                                  f"{new_list}", reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_delete_admin: {e}")
@@ -134,12 +136,14 @@ def setup_main_admin_handlers(bot):
             if callback.data == 'add_new_student':
                 bot.send_message(callback.message.chat.id,
                                  f"Введите имя и группу студента через запятую. \n"
-                                 f"Если вы хотите внести в список сразу несколько студентов, то каждого студента записывайте с новой строки. \n"
+                                 f"Если вы хотите внести в список сразу несколько студентов, "
+                                 f"то каждого студента записывайте с новой строки. \n"
                                  f"Например: \nИванов Иван, 235\n Петров Петр, 236\n Светланова Светлана, 234")
                 bot.register_next_step_handler(callback.message, process_name_of_new_student)
             else:
                 bot.send_message(callback.message.chat.id,
-                                 f"Введите номера студентов, которых хотите удалить, через запятую и пробел. Например: 1, 4, 6")
+                                 f"Введите номера студентов, которых хотите удалить, "
+                                 f"через запятую и пробел. Например: 1, 4, 6")
                 bot.register_next_step_handler(callback.message, process_delete_students)
         except Exception as e:
             logging.error(f"Ошибка в change_handler: {e}")
@@ -147,8 +151,8 @@ def setup_main_admin_handlers(bot):
 
     def process_name_of_new_student(message):
         try:
-            str = message.text
-            add_student_in_list(str)
+            name = message.text
+            add_student_in_list(name)
             list_of_students = get_list_of_students()
             bot.send_message(message.chat.id, f"Список изменён:\n"
                                               f"{list_of_students}"
@@ -179,7 +183,9 @@ def setup_main_admin_handlers(bot):
         bot.send_message(callback.message.chat.id,
                          "Пришлите файл со списком студентов в формате, сделанный по следующим правилам:\n"
                          "1) Формат файла: .xlsx или .xls \n"
-                         '2) Таблица должна содержать два столбца: имена студентов (этот столбец должен иметь название "full_name"), номер группы (столбец должен называться "group_number")',
+                         '2) Таблица должна содержать два столбца: имена студентов '
+                         '(этот столбец должен иметь название "full_name"), '
+                         'номер группы (столбец должен называться "group_number")',
                          reply_markup = main_admin_keyboard())
 
     @bot.message_handler(content_types = ['document'])
@@ -241,7 +247,8 @@ def setup_main_admin_handlers(bot):
                 bot.register_next_step_handler(message, process_deadline_of_new_task, task_name)
                 return
             bot.send_message(message.chat.id,
-                             "Для кого предназначено задание? Введите номера групп через запятую (234, 235, 236) или напишите 'все':")
+                             "Для кого предназначено задание? Введите номера групп через запятую "
+                             "(234, 235, 236) или напишите 'все':")
             bot.register_next_step_handler(message, process_target_group_of_new_task, task_name, deadline)
         except Exception as e:
             logging.error(f"Ошибка в process_deadline_of_new_task: {e}")
@@ -274,7 +281,8 @@ def setup_main_admin_handlers(bot):
             sizes_of_eq = [int(size.strip()) for size in system_size.split(",")]
             if len(sizes_of_eq) > 20 or sum(sizes_of_eq) > 100:
                 bot.send_message(message.chat.id,
-                                 f'Слишком большое количество заданий или слишком большие размеры систем! Попробуйте ввести меньше параметров')
+                                 f'Слишком большое количество заданий или слишком большие размеры систем! '
+                                 f'Попробуйте ввести меньше параметров')
                 bot.register_next_step_handler(message, process_system_size, task_name, deadline, target_group)
                 return
 
@@ -290,7 +298,8 @@ def setup_main_admin_handlers(bot):
                     bot.send_document(message.chat.id, pdf2, caption = "Ответы")
                 bot.send_message(
                     message.chat.id,
-                    f'Задание успешно создано!\n\nНазвание: {task_name}\nДедлайн: {deadline}\nДля: {target_group}\n\nХотите опубликовать задание? (введите "Да" или "Нет")'
+                    f'Задание успешно создано!\n\nНазвание: {task_name}\nДедлайн: {deadline}\nДля: {target_group}\n\n'
+                    f'Хотите опубликовать задание? (введите "Да" или "Нет")'
                 )
                 bot.register_next_step_handler(message, process_public_task, pk)
             else:
@@ -307,11 +316,13 @@ def setup_main_admin_handlers(bot):
                                  reply_markup = main_admin_keyboard())
             else:
                 bot.send_message(message.chat.id,
-                                 f'Вы всегда можете опубликовать задание! Для этого нажмите "Просмотр заданий" и выберите нужное задание.',
+                                 f'Вы всегда можете опубликовать задание! '
+                                 f'Для этого нажмите "Просмотр заданий" и выберите нужное задание.',
                                  reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_target_group_of_new_task: {e}")
-            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.", reply_markup = main_admin_keyboard())
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.",
+                             reply_markup = main_admin_keyboard())
 
     @bot.callback_query_handler(func = lambda callback: callback.data in ['list_of_task'])
     def get_list_of_task(callback):

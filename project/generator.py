@@ -19,7 +19,7 @@ def from_equations_to_latex(equations):
     return latex_code
 
 
-# функция для определения пропорциональности строк, чтобы не допускать зануления строки
+# функция для определения пропорциональности строк, чтобы не допускать обнуления строки
 def is_proportional(ai, row):
     relation = 0
     for ai_elem, row_elem in zip(ai, row):
@@ -44,25 +44,25 @@ def generate_eq_for_variant(count_of_task, count_of_eq):
         x_ans = [random.randint(-15, 15) for _ in range(count_of_eq[task])]  # генерируем ответ
         while x_ans == [0] * count_of_eq[task]:
             x_ans = [random.randint(-10, 10) for _ in range(count_of_eq[task])]
-        A = []  # матрица коэффицентов
+        aa = []  # матрица коэффициентов
         b = []
 
         for i in range(count_of_eq[task]):
             ai = [random.randint(-10, 10) for _ in range(count_of_eq[task])]
             # не допускаем, чтобы строки были пропорциональны
-            for row in A:
+            for row in aa:
                 while is_proportional(ai, row) or ai == [0] * count_of_eq[task]:
                     ai = [random.randint(-10, 10) for _ in range(count_of_eq[task])]
             bi = sum(a * x for a, x in zip(ai, x_ans))
             b.append(bi)
-            A.append(ai)
+            aa.append(ai)
 
-        A_matrix = sp.Matrix(A)
+        a_matrix = sp.Matrix(aa)
         b_vector = sp.Matrix(b)
 
         x_i = sp.symbols(f'x1:{count_of_eq[task] + 1}')
         x_vector = sp.Matrix(x_i)
-        equations = [sp.Eq(lhs, rhs) for lhs, rhs in zip(A_matrix * x_vector, b_vector)]
+        equations = [sp.Eq(lhs, rhs) for lhs, rhs in zip(a_matrix * x_vector, b_vector)]
 
         task_tex = from_equations_to_latex(equations)
         latex_code_one_variants += rf'Задание {task + 1}.\\' + '\n'
@@ -83,16 +83,13 @@ def generate_eq_for_variant(count_of_task, count_of_eq):
     return latex_code_one_variants, latex_code_ans
 
 
-# добавить обработку, когда для всех
 def generate_tex(task_info, count_of_task, count_of_eq):
-    preambula = (
-            r'\documentclass[a4paper,12pt]{article}' + '\n'
-                                                       r'\usepackage{amsmath, amsthm, amssymb}' + '\n'
-                                                                                                  r'\usepackage[T1,T2A]{fontenc}' + '\n'
-                                                                                                                                    r'\usepackage[utf8]{inputenc}' + '\n'
-                                                                                                                                                                     r'\usepackage[english, russian]{babel}' + '\n'
-                                                                                                                                                                                                               r'\begin{document}' + '\n'
-    )
+    preambula = r'\documentclass[a4paper,12pt]{article}' + '\n'
+    preambula += r'\usepackage{amsmath, amsthm, amssymb}' + '\n'
+    preambula += r'\usepackage[T1,T2A]{fontenc}' + '\n'
+    preambula += r'\usepackage[utf8]{inputenc}' + '\n'
+    preambula += r'\usepackage[english, russian]{babel}' + '\n'
+    preambula += r'\begin{document}' + '\n'
     latex_code_for_all_task = preambula
     latex_code_for_all_answers = preambula
     latex_code_for_all_answers += (
@@ -122,12 +119,9 @@ def generate_tex(task_info, count_of_task, count_of_eq):
         students = get_students_by_group(
             int(group_of_students))  # получаем студентов из группы в алфавитном порядке
 
-        name_for_ans = (
-                r'\begin{center}' + '\n'
-                                    rf'\textbf{{Группа - {group_of_students}}}' + '\n'
-                                                                                  r'\end{center}' + '\n'
-                                                                                                    '\n'
-        )
+        name_for_ans = r'\begin{center}' + '\n'
+        name_for_ans += rf'\textbf{{Группа - {group_of_students}}}' + '\n'
+        name_for_ans += r'\end{center}' + '\n' + '\n'
 
         all_answer_latex += name_for_ans
 
@@ -135,12 +129,10 @@ def generate_tex(task_info, count_of_task, count_of_eq):
 
         for student in students:
             student_name = student["full_name"]
-            name_of_variant = (
-                    r'\begin{center}' + '\n'
-                                        rf'\textbf{{Вариант - {student_name}, группа {group_of_students}}}' + '\n'
-                                                                                  r'\end{center}' + '\n'
-                                                                                                    '\n'
-            )
+            name_of_variant = r'\begin{center}' + '\n'
+            name_of_variant += rf'\textbf{{Вариант - {student_name}, группа {group_of_students}}}' + '\n'
+            name_of_variant += r'\end{center}' + '\n' + '\n'
+
             key_for_student = f"{student_name}_{group_of_students}"
             # Добавляем задания для общего файла и для конкретного студента
             all_task_latex += name_of_variant

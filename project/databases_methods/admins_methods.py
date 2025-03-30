@@ -1,13 +1,13 @@
 import sqlite3
 import os
+from users_methods import get_user
+from students_methods import get_student_by_tg_id
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_DIR = os.path.join(BASE_DIR, "../databases")
 os.makedirs(DATABASE_DIR, exist_ok = True)
 
 db_path = os.path.join(DATABASE_DIR, "admins.db")
-
-from users_methods import get_user
 
 
 def create_db_admin():
@@ -32,12 +32,17 @@ def add_admin(tg_id, tg_username, groups_of_students):
     create_db_admin()
 
     user = get_user(tg_id)
-    full_name = user[3]
+    student = get_student_by_tg_id(tg_id)
+    if student:
+        full_name = student[2]
+    else:
+        full_name = user[3]
 
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    cursor.execute("INSERT OR IGNORE INTO admins (tg_id, tg_username, full_name, groups_of_students) VALUES (?, ?, ?, ?)",
+    cursor.execute("INSERT OR IGNORE INTO admins (tg_id, tg_username, full_name, groups_of_students) "
+                   "VALUES (?, ?, ?, ?)",
                    (tg_id, tg_username, full_name, groups_of_students))
 
     conn.commit()
@@ -134,4 +139,3 @@ def update_admin_info(tg_id, new_groups_of_students=None, new_full_name=None):
     else:
         conn.close()
         return False
-

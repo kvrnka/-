@@ -3,6 +3,9 @@ import os
 from telebot import types
 from databases_methods.students_methods import update_student_info, get_student_by_tg_id
 from databases_methods.tasks_methods import get_publish_task_for_student_by_group, get_task_by_pk
+from databases_methods.key_for_admin import search_key
+from databases_methods.admins_methods import add_admin
+from admins_handler import admin_keyboard
 
 logging.basicConfig(
     filename = "bot_errors.log",
@@ -27,7 +30,7 @@ def setup_student_handlers(bot):
             if student:
                 markup = types.InlineKeyboardMarkup()
                 markup.add(types.InlineKeyboardButton('Зарегистрироваться как преподаватель или ассистент',
-                                                      callback_data = 'new_admin'))
+                                                      callback_data = 'new_admin_from_student'))
                 markup.add(types.InlineKeyboardButton('Изменить имя', callback_data = 'update_name'))
                 markup.add(types.InlineKeyboardButton('Изменить группу', callback_data = 'update_group'))
                 bot.send_message(callback.message.chat.id, f"Ваше имя: {student[2]}.\n"
@@ -41,10 +44,14 @@ def setup_student_handlers(bot):
             logging.error(f"Ошибка в continue_registration: {e}")
             bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
-    @bot.callback_query_handler(func = lambda callback: callback.data in ['update_name', 'update_group'])
+    @bot.callback_query_handler(func = lambda callback: callback.data in ['new_admin_from_student',
+                                                                          'update_name', 'update_group'])
     def handle_update_request(callback):
         try:
-            if callback.data == 'update_name':
+            if callback.data == 'new_admin_from_student':
+                bot.send_message(callback.message.chat.id, "Введите код доступа")
+                bot.register_next_step_handler(callback.message, process_new_admin_from_student)
+            elif callback.data == 'update_name':
                 bot.send_message(callback.message.chat.id, f"Введите новое имя")
                 bot.register_next_step_handler(callback.message, process_update_name)
             if callback.data == 'update_group':
@@ -53,6 +60,36 @@ def setup_student_handlers(bot):
         except Exception as e:
             logging.error(f"Ошибка в handle_update_request: {e}")
             bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+    def process_new_admin_from_student(message):
+        try:
+            key = message.text
+            res = search_key(key)
+            if res:
+                bot.send_message(message.chat.id,
+                                 "Введите группы, за которые вы ответственны через запятую. Например: 241, 243, 244")
+                bot.register_next_step_handler(message, process_group_for_admin_from_student)
+            else:
+                bot.send_message(message.chat.id,
+                                 "Не удалось зарегистрироваться. "
+                                 "Возможно, вы ввели неверный код, или код уже устарел. \n"
+                                 "Выберите следующее действие:",
+                                 reply_markup = students_keyboard())
+        except Exception as e:
+            logging.error(f"Ошибка в process_new_admin: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка. Попробуйте еще раз.")
+
+    def process_group_for_admin_from_student(message):
+        try:
+            groups = message.text.strip
+            # проверить, что вводится как надо
+            add_admin(message.from_user.id, message.from_user.username, groups)
+            bot.send_message(message.chat.id,
+                             "Вы успешно зарегистрировались, теперь вам доступны права администратора!",
+                             reply_markup = admin_keyboard())
+        except Exception as e:
+            logging.error(f"Ошибка в process_group_for_admin_from_student: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка при обработке групп. Попробуйте еще раз.")
 
     def student_is_found(check, student):
         try:

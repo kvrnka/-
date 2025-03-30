@@ -53,7 +53,7 @@ def search_key(key_):
 
     conn.close()
 
-    if keys == []:
+    if not keys:
         return False
 
     now = datetime.now()

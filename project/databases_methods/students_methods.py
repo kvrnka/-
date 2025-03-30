@@ -96,7 +96,6 @@ def update_student_info(tg_id, new_group = None, new_full_name = None):
         conn.close()
         return [False, False]  # Студент не найден
 
-    # Собираем поля для обновления
     update_fields = []
     values = []
 
@@ -107,14 +106,12 @@ def update_student_info(tg_id, new_group = None, new_full_name = None):
         update_fields.append("full_name = ?")
         values.append(new_full_name)
 
-    # Если есть, что обновлять — выполняем UPDATE
     if update_fields:
-        values.append(tg_id)  # tg_id для WHERE
+        values.append(tg_id)
         query = f"UPDATE students SET {', '.join(update_fields)} WHERE tg_id = ?"
         cursor.execute(query, values)
         conn.commit()
 
-    # Получаем обновленные данные студента
     cursor.execute("SELECT full_name, student_group FROM students WHERE tg_id = ?", (tg_id,))
     updated_student = cursor.fetchone()
 
@@ -129,8 +126,8 @@ def update_student_info(tg_id, new_group = None, new_full_name = None):
         conn.commit()
         conn.close()
 
-        return [True,
-                number is not None]  # первый аргумент значит, что пользователь обновлен, второй - найден ли пользователь в списке лектора
+        # первый аргумент значит, что пользователь обновлен, второй - найден ли пользователь в списке лектора
+        return [True, number is not None]
 
     conn.close()
     return [False, False]  # Обновление не произошло
