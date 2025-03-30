@@ -73,7 +73,6 @@ def setup_main_admin_handlers(bot):
             password = message.text
             tg_id = message.from_user.id
             add_key(tg_id, password)
-            # найти ошибку
             bot.send_message(message.chat.id, f"Пароль сохранен!")
         except Exception as e:
             logging.error(f"Ошибка в process_create_password: {e}")

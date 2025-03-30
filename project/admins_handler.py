@@ -130,10 +130,14 @@ def setup_admin_handlers(bot):
             groups = [group.strip() for group in groups_string.split(',')]
 
             for group in groups:
-                pdf_path_task = f"task/{task_info[1]}/{task_info[1]}_ans_for_group_{group}.pdf"
-                if os.path.exists(pdf_path_task):
-                    with open(pdf_path_task, "rb") as pdf1:
+                pdf_path_task = f"task/{task_info[1]}/{task_info[1]}_condition_for_group_{group}.pdf"
+                pdf_path_ans = f"task/{task_info[1]}/{task_info[1]}_ans_for_group_{group}.pdf"
+
+                if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans):
+                    with open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2:
                         bot.send_document(message.chat.id, pdf1,
+                                          caption = f'Задание: {task_info[1]}\nУсловия для группы: {group}')
+                        bot.send_document(message.chat.id, pdf2,
                                           caption = f'Задание: {task_info[1]}\nОтветы для группы: {group}')
             bot.send_message(
                 message.chat.id,

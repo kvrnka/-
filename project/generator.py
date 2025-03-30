@@ -113,6 +113,7 @@ def generate_tex(task_info, count_of_task, count_of_eq):
     all_answer_latex = ""  # для общего файла с ответами
     student_task_latex = {}  # для заданий, сгруппированных по студентам
     group_answer_latex = {}  # для ответов, сгруппированных по группам
+    group_condition_latex = {}
 
     # Подготовка для каждого студента
     for group_of_students in groups:
@@ -126,6 +127,7 @@ def generate_tex(task_info, count_of_task, count_of_eq):
         all_answer_latex += name_for_ans
 
         ans_for_current_group = preambula + name_for_ans
+        condition_for_current_group = preambula + name_for_ans
 
         for student in students:
             student_name = student["full_name"]
@@ -137,6 +139,7 @@ def generate_tex(task_info, count_of_task, count_of_eq):
             # Добавляем задания для общего файла и для конкретного студента
             all_task_latex += name_of_variant
             all_answer_latex += name_of_variant
+            condition_for_current_group += name_of_variant
             student_task_latex[key_for_student] = preambula + name_of_variant
             ans_for_current_group += name_of_variant
 
@@ -144,9 +147,11 @@ def generate_tex(task_info, count_of_task, count_of_eq):
 
             all_task_latex += task_latex + r'\newpage'
             all_answer_latex += ans_latex
+            condition_for_current_group += task_latex + r'\newpage'
             student_task_latex[key_for_student] += task_latex + end_doc
             ans_for_current_group += ans_latex
         group_answer_latex[group_of_students] = ans_for_current_group + end_doc
+        group_condition_latex[group_of_students] = condition_for_current_group + end_doc
 
     latex_code_for_all_task += all_task_latex
     latex_code_for_all_answers += all_answer_latex + r'\newpage'
@@ -154,7 +159,8 @@ def generate_tex(task_info, count_of_task, count_of_eq):
     latex_code_for_all_task += r'\end{document}' + '\n'
     latex_code_for_all_answers += r'\end{document}' + '\n'
 
-    return latex_code_for_all_task, latex_code_for_all_answers, student_task_latex, group_answer_latex
+    return (latex_code_for_all_task, latex_code_for_all_answers, student_task_latex,
+            group_answer_latex, group_condition_latex)
 
 
 def generate_pdf(task_info, count_of_task, count_of_eq):
@@ -164,8 +170,8 @@ def generate_pdf(task_info, count_of_task, count_of_eq):
     if not os.path.exists(task_folder):
         os.makedirs(task_folder)
 
-    latex_code, latex_code_for_ans, student_task_latex, student_answer_latex = generate_tex(task_info, count_of_task,
-                                                                                            count_of_eq)
+    latex_code, latex_code_for_ans, student_task_latex, student_answer_latex, group_condition_latex \
+        = generate_tex(task_info, count_of_task, count_of_eq)
 
     tex_file_path = os.path.join(task_folder, f"{task_name}_system_of_equations.tex")
     tex_ans_file_path = os.path.join(task_folder, f"{task_name}_system_of_equations_answer.tex")
@@ -190,6 +196,13 @@ def generate_pdf(task_info, count_of_task, count_of_eq):
     for group, group_answer in student_answer_latex.items():
         group_tex_file = os.path.join(task_folder, f"{task_name}_ans_for_group_{group}.tex")
         group_latex_code = group_answer
+        with open(group_tex_file, "w") as f:
+            f.write(group_latex_code)
+        subprocess.run(["pdflatex", "-output-directory", task_folder, group_tex_file])
+
+    for group, group_condition in group_condition_latex.items():
+        group_tex_file = os.path.join(task_folder, f"{task_name}_condition_for_group_{group}.tex")
+        group_latex_code = group_condition
         with open(group_tex_file, "w") as f:
             f.write(group_latex_code)
         subprocess.run(["pdflatex", "-output-directory", task_folder, group_tex_file])
