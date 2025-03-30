@@ -7,7 +7,7 @@ from databases_methods.list_of_students_methods import (add_by_excel, get_list_o
                                                         delete_student_from_list)
 from databases_methods.key_for_admin import add_key
 from databases_methods.tasks_methods import (add_task, make_public, get_unpublished_tasks, get_published_tasks,
-                                             update_task_deadline, delete_task, is_unique_task)
+                                             update_task_deadline, delete_task, is_unique_task, get_task_by_pk)
 from generator import generate_pdf
 
 logging.basicConfig(
@@ -339,6 +339,8 @@ def setup_main_admin_handlers(bot):
             if unpublish or publish:
                 markup = types.InlineKeyboardMarkup()
                 markup.add(
+                    types.InlineKeyboardButton('Получить задания и ответы', callback_data = 'get_task_and_answer'))
+                markup.add(
                     types.InlineKeyboardButton('Изменить дедлайн', callback_data = 'change_task_deadline'))
                 markup.add(
                     types.InlineKeyboardButton('Опубликовать задание', callback_data = 'make_public_task'))
@@ -353,12 +355,14 @@ def setup_main_admin_handlers(bot):
             bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
     @bot.callback_query_handler(
-        func = lambda callback: callback.data in ['change_task_deadline', 'make_public_task',
-                                                  'delete_task'])
+        func = lambda callback: callback.data in ['get_task_and_answer', 'change_task_deadline',
+                                                  'make_public_task', 'delete_task'])
     def change_task_information(callback):
         try:
             bot.send_message(callback.message.chat.id, "Введите номер задания:")
-            if callback.data == 'change_task_deadline':
+            if callback.data == 'get_task_and_answer':
+                bot.register_next_step_handler(callback.message, get_task_number, 'get_task_and_answer')
+            elif callback.data == 'change_task_deadline':
                 bot.register_next_step_handler(callback.message, get_task_number, 'change_task_deadline')
             elif callback.data == 'make_public_task':
                 bot.register_next_step_handler(callback.message, get_task_number, 'make_public_task')
@@ -371,7 +375,22 @@ def setup_main_admin_handlers(bot):
     def get_task_number(message, action):
         try:
             task_id = message.text
-            if action == 'change_task_deadline':
+            task_info = get_task_by_pk(task_id)
+            if not task_info:
+                bot.send_message(message.chat.id, f'Задание не найдено. Возможно, вы ввели неверный номер задания. '
+                                                  f'Попробуйте ввести ещё раз:')
+                bot.register_next_step_handler(message, get_task_number, action)
+                return
+            if action == 'get_task_and_answer':
+                pdf_path_task = f"task/{task_info[1]}/{task_info[1]}_system_of_equations.pdf"
+                pdf_path_ans = f"task/{task_info[1]}/{task_info[1]}_system_of_equations_answer.pdf"
+                if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans):
+                    with open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2:
+                        bot.send_document(message.chat.id, pdf1, caption = f"Условия для {task_info[1]}")
+                        bot.send_document(message.chat.id, pdf2, caption = f"Ответы для {task_info[1]}")
+                    bot.send_message(message.chat.id, f'Выберите следующее действие:', 
+                                     reply_markup = main_admin_keyboard())
+            elif action == 'change_task_deadline':
                 bot.send_message(message.chat.id, "Введите новый дедлайн (формат: ДД.ММ.ГГГГ ЧЧ:ММ): ")
                 bot.register_next_step_handler(message, process_change_deadline, task_id)
             elif action == 'make_public_task':

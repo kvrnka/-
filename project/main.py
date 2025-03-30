@@ -37,11 +37,7 @@ setup_main_admin_handlers(bot)
 @bot.message_handler(commands = ['start'])
 def start(message):
     try:
-        logging.error(
-            f"стартуем. Chat id: {message.chat.id} User id: {message.from_user.id}")
         tg_id = message.from_user.id
-        # get_main_admin(tg_id)
-
         if get_main_admin(tg_id):
             bot.send_message(message.chat.id, f'Здравствуйте, {message.from_user.first_name}! Выберите действие:',
                              reply_markup = main_admin_keyboard())
