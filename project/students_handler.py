@@ -11,7 +11,6 @@ logging.basicConfig(
 )
 
 
-# клавиатурка
 def students_keyboard():
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton('Изменить информацию о себе', callback_data = 'edit_info'))
@@ -27,7 +26,7 @@ def setup_student_handlers(bot):
             student = get_student_by_tg_id(callback.message.chat.id)
             if student:
                 markup = types.InlineKeyboardMarkup()
-                markup.add(types.InlineKeyboardButton('Зарегистрироваться как преподователь или ассистент',
+                markup.add(types.InlineKeyboardButton('Зарегистрироваться как преподаватель или ассистент',
                                                       callback_data = 'new_admin'))
                 markup.add(types.InlineKeyboardButton('Изменить имя', callback_data = 'update_name'))
                 markup.add(types.InlineKeyboardButton('Изменить группу', callback_data = 'update_group'))
@@ -55,23 +54,33 @@ def setup_student_handlers(bot):
             logging.error(f"Ошибка в handle_update_request: {e}")
             bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
+    def student_is_found(check, student):
+        try:
+            if not check[0]:
+                bot.send_message(student[0], "Не удалось обновить информацию", reply_markup = students_keyboard())
+            elif check[0] and check[1]:
+                bot.send_message(student[0], "Информация изменена, вы найдены в списке лектора!\n"
+                                             f"Ваше имя: {student[2]}\n"
+                                             f"Ваша группа: {student[1]}",
+                                 reply_markup = students_keyboard())
+            elif check[0] and not check[1]:
+                bot.send_message(student[0], "Информация изменена, но вы не найдены в списке лектора.\n"
+                                             f"Ваше имя: {student[2]}\n"
+                                             f"Ваша группа: {student[1]}",
+                                 reply_markup = students_keyboard())
+        except Exception as e:
+            logging.error(f"Ошибка в process_update_name: {e}")
+            bot.send_message(student[0], "Произошла ошибка! Попробуйте еще раз.")
+
     def process_update_name(message):
         try:
             new_name = message.text
             check = update_student_info(message.from_user.id, None, new_name)
             student = get_student_by_tg_id(message.from_user.id)
-            if check[0] == False:
-                bot.send_message(message.chat.id, "Не удалось обновить информацию", reply_markup = students_keyboard())
-            elif check[0] == True and check[1] == True:
-                bot.send_message(message.chat.id, "Информация изменена, вы найдены в списке лектора!\n"
-                                                  f"Ваше имя: {student[2]}\n"
-                                                  f"Ваша группа: {student[1]}",
-                                 reply_markup = students_keyboard())
-            elif check[0] == True and check[1] == False:
-                bot.send_message(message.chat.id, "Информация изменена, но вы не найдены в списке лектора.\n"
-                                                  f"Ваше имя: {student[2]}\n"
-                                                  f"Ваша группа: {student[1]}",
-                                 reply_markup = students_keyboard())
+            if student:
+                student_is_found(check, student)
+            else:
+                bot.send_message(message.chat.id, f'Вы не найдены в базе данных', reply_markup = students_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_update_name: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
@@ -81,18 +90,10 @@ def setup_student_handlers(bot):
             new_group = message.text
             check = update_student_info(message.from_user.id, new_group, None)
             student = get_student_by_tg_id(message.from_user.id)
-            if check[0] == False:
-                bot.send_message(message.chat.id, "Не удалось обновить информацию", reply_markup = students_keyboard())
-            elif check[0] == True and check[1] == True:
-                bot.send_message(message.chat.id, "Информация изменена, вы найдены в списке лектора!\n"
-                                                  f"Ваше имя: {student[2]}\n"
-                                                  f"Ваша группа: {student[1]}",
-                                 reply_markup = students_keyboard())
-            elif check[0] == True and check[1] == False:
-                bot.send_message(message.chat.id, "Информация изменена, но вы не найдены в списке лектора.\n"
-                                                  f"Ваше имя: {student[2]}\n"
-                                                  f"Ваша группа: {student[1]}",
-                                 reply_markup = students_keyboard())
+            if student:
+                student_is_found(check, student)
+            else:
+                bot.send_message(message.chat.id, f'Вы не найдены в базе данных', reply_markup = students_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_update_group: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
@@ -107,7 +108,8 @@ def setup_student_handlers(bot):
                 if task:
                     text_message = 'Доступные задания:\n' + task + 'Выберите действие ниже или нажмите /start'
                     markup = types.InlineKeyboardMarkup()
-                    markup.add(types.InlineKeyboardButton('Получить файл с заданием', callback_data = 'get_pdf_for_student'))
+                    markup.add(
+                        types.InlineKeyboardButton('Получить файл с заданием', callback_data = 'get_pdf_for_student'))
                     bot.send_message(callback.message.chat.id, text_message, reply_markup = markup)
                 else:
                     bot.send_message(callback.message.chat.id, "Нет доступных заданий",
@@ -147,7 +149,8 @@ def setup_student_handlers(bot):
                     f'Условие для {task_info[1]}\nДедлайн: {task_info[2]}', reply_markup = students_keyboard())
             else:
                 bot.send_message(message.chat.id,
-                                 f'Файл не найден. Проверьте, что ваше фио и группа записаны также, как в списке лектора.',
+                                 f'Файл не найден. Проверьте, что ваше фио и группа записаны также, '
+                                 f'как в списке лектора.',
                                  reply_markup = students_keyboard())
 
         except Exception as e:
