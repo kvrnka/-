@@ -1,6 +1,8 @@
 import logging
+import os
 from telebot import types
 from databases_methods.students_methods import update_student_info, get_student_by_tg_id
+from databases_methods.tasks_methods import get_publish_task_for_student_by_group, get_task_by_pk
 
 logging.basicConfig(
     filename = "bot_errors.log",
@@ -14,7 +16,7 @@ def students_keyboard():
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton('Изменить информацию о себе', callback_data = 'edit_info'))
     markup.add(
-        types.InlineKeyboardButton('Просмотр доступных работ', callback_data = 'task'))
+        types.InlineKeyboardButton('Просмотр доступных работ', callback_data = 'get_task_for_student'))
     return markup
 
 
@@ -23,15 +25,19 @@ def setup_student_handlers(bot):
     def continue_registration(callback):
         try:
             student = get_student_by_tg_id(callback.message.chat.id)
-            markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton('Зарегистрироваться как преподователь или ассистент',
-                                                  callback_data = 'new_admin'))
-            markup.add(types.InlineKeyboardButton('Изменить имя', callback_data = 'update_name'))
-            markup.add(types.InlineKeyboardButton('Изменить группу', callback_data = 'update_group'))
-            bot.send_message(callback.message.chat.id, f"Ваше имя: {student[2]}.\n"
-                                                       f"Ваша группа: {student[1]}.\n"
-                                                       f"Выберите, что вы хотите изменить:",
-                             reply_markup = markup)
+            if student:
+                markup = types.InlineKeyboardMarkup()
+                markup.add(types.InlineKeyboardButton('Зарегистрироваться как преподователь или ассистент',
+                                                      callback_data = 'new_admin'))
+                markup.add(types.InlineKeyboardButton('Изменить имя', callback_data = 'update_name'))
+                markup.add(types.InlineKeyboardButton('Изменить группу', callback_data = 'update_group'))
+                bot.send_message(callback.message.chat.id, f"Ваше имя: {student[2]}.\n"
+                                                           f"Ваша группа: {student[1]}.\n"
+                                                           f"Выберите, что вы хотите изменить:",
+                                 reply_markup = markup)
+            else:
+                bot.send_message(callback.message.chat.id, f'Вы не найдены в базе данных, попробуйте снова',
+                                 reply_markup = students_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в continue_registration: {e}")
             bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
@@ -70,7 +76,6 @@ def setup_student_handlers(bot):
             logging.error(f"Ошибка в process_update_name: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
 
-
     def process_update_group(message):
         try:
             new_group = message.text
@@ -90,4 +95,61 @@ def setup_student_handlers(bot):
                                  reply_markup = students_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_update_group: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+    @bot.callback_query_handler(func = lambda callback: callback.data in ['get_task_for_student'])
+    def get_list_of_task_for_student(callback):
+        try:
+            student = get_student_by_tg_id(callback.message.chat.id)
+            if student:
+                group = student[1]
+                task = get_publish_task_for_student_by_group(group)
+                if task:
+                    text_message = 'Доступные задания:\n' + task + 'Выберите действие ниже или нажмите /start'
+                    markup = types.InlineKeyboardMarkup()
+                    markup.add(types.InlineKeyboardButton('Получить файл с заданием', callback_data = 'get_pdf_for_student'))
+                    bot.send_message(callback.message.chat.id, text_message, reply_markup = markup)
+                else:
+                    bot.send_message(callback.message.chat.id, "Нет доступных заданий",
+                                     reply_markup = students_keyboard())
+            else:
+                bot.send_message(callback.message.chat.id, f'Вы не найдены в базе данных, попробуйте ещё раз.',
+                                 reply_markup = students_keyboard())
+        except Exception as e:
+            logging.error(f"Ошибка в def get_list_of_task_for_student: {e}")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+    @bot.callback_query_handler(func = lambda callback: callback.data in ['get_pdf_for_student'])
+    def get_task_for_student(callback):
+        try:
+            bot.send_message(callback.message.chat.id, "Введите номер задания:")
+            bot.register_next_step_handler(callback.message, process_get_task_id_from_student)
+        except Exception as e:
+            logging.error(f"Ошибка в def get_list_of_task_for_student: {e}")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+
+    def process_get_task_id_from_student(message):
+        try:
+            task_id = message.text.strip()
+            task_info = get_task_by_pk(task_id)
+            student_info = get_student_by_tg_id(message.from_user.id)
+            if task_info[5] == 0 or (str(student_info[1]) not in task_info[3] and task_info[3] != 'все'):
+                bot.send_message(message.chat.id, "Вы ввели неправильный номер, попробуйте ещё раз:")
+                bot.register_next_step_handler(message, process_get_task_id_from_student)
+                return
+            pdf_path_task = f"task/{task_info[1]}/{task_info[1]}_{student_info[2]}_{student_info[1]}.pdf"
+
+            if os.path.exists(pdf_path_task):
+                with open(pdf_path_task, "rb") as pdf1:
+                    bot.send_document(message.chat.id, pdf1)
+                bot.send_message(
+                    message.chat.id,
+                    f'Условие для {task_info[1]}\nДедлайн: {task_info[2]}', reply_markup = students_keyboard())
+            else:
+                bot.send_message(message.chat.id,
+                                 f'Файл не найден. Проверьте, что ваше фио и группа записаны также, как в списке лектора.',
+                                 reply_markup = students_keyboard())
+
+        except Exception as e:
+            logging.error(f"Ошибка в def process_get_task_id_from_student: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")

@@ -77,22 +77,6 @@ def get_students_by_group(group_number):
     ]
 
 
-# def get_sorted_all_students():
-#     create_db_list_of_student()
-#     conn = sqlite3.connect(db_path)
-#     cursor = conn.cursor()
-#
-#     cursor.execute("""
-#     SELECT * FROM list_of_students
-#     ORDER BY group_number ASC, full_name ASC
-#     """)
-#
-#     students = cursor.fetchall()
-#     conn.close()
-#
-#     return students
-
-
 def get_unique_group_numbers():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()

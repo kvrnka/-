@@ -20,7 +20,6 @@ def create_db_student():
         tg_id INTEGER UNIQUE,
         student_group INTEGER,
         full_name TEXT,
-        number_in_list INTEGER,
         id_from_list INTEGER
     )
     """)

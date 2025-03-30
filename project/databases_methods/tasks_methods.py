@@ -52,6 +52,7 @@ def add_task(name_of_task, deadline, target_groups):
 
 
 def is_unique_task(task_name):
+    create_db_task()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -73,6 +74,33 @@ def get_unpublished_tasks():
     cursor.execute("""
     SELECT * FROM tasks WHERE is_public = 0
     """)
+
+    tasks = cursor.fetchall()
+    conn.close()
+
+    def parse_deadline(task):
+        return datetime.strptime(task[2], "%d.%m.%Y %H:%M")
+
+    sorted_tasks = sorted(tasks, key = parse_deadline)
+
+    text = ''
+
+    for task in sorted_tasks:
+        text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nНомер: {task[0]}\n\n'
+
+    return text
+
+
+def get_publish_task_for_student_by_group(group):
+    create_db_task()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+            SELECT * FROM tasks 
+            WHERE is_public = 1 
+            AND (target_groups = 'все' OR instr(target_groups, ?) > 0)
+        """, (str(group),))
 
     tasks = cursor.fetchall()
     conn.close()
@@ -163,6 +191,7 @@ def update_task_deadline(task_id, new_deadline):
 
 
 def delete_task(task_id):
+    create_db_task
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 

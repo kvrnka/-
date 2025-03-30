@@ -37,6 +37,8 @@ setup_main_admin_handlers(bot)
 @bot.message_handler(commands = ['start'])
 def start(message):
     try:
+        logging.error(
+            f"стартуем. Chat id: {message.chat.id} User id: {message.from_user.id}")
         tg_id = message.from_user.id
         # get_main_admin(tg_id)
 
@@ -115,7 +117,7 @@ def process_group(message):
     try:
         group = message.text
         if add_student(message.from_user.id, group):
-            bot.send_message(message.chat.id, "Ваши данные сохранены! Выберите следующее действие:",
+            bot.send_message(message.chat.id, "Ваши данные сохранены, вы найдены в списке лектора! Выберите следующее действие:",
                              reply_markup = students_keyboard())
         else:
             bot.send_message(message.chat.id,
