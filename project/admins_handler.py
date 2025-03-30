@@ -1,15 +1,16 @@
 import logging
 from telebot import types
+import os
 from databases_methods.admins_methods import update_admin_info as update_admin_info_db, get_admin
+from databases_methods.tasks_methods import get_task_for_admin, get_task_by_pk
 
 logging.basicConfig(
-    filename= "bot_errors.log",
-    level=logging.ERROR,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    filename = "bot_errors.log",
+    level = logging.ERROR,
+    format = "%(asctime)s - %(levelname)s - %(message)s",
 )
 
 
-# клавиатурка
 def admin_keyboard():
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton('Изменить информацию о себе', callback_data = 'admin_edit_info'))
@@ -26,7 +27,8 @@ def setup_admin_handlers(bot):
             if admin:
                 markup = types.InlineKeyboardMarkup()
                 markup.add(types.InlineKeyboardButton('Изменить имя', callback_data = 'update_admin_name'))
-                markup.add(types.InlineKeyboardButton('Изменить свой список групп', callback_data = 'update_admin_group'))
+                markup.add(types.InlineKeyboardButton('Изменить свой список групп',
+                                                      callback_data = 'update_admin_group'))
                 bot.send_message(callback.message.chat.id, f"Ваше имя: {admin[2]}.\n"
                                                            f"Ваши группы: {admin[3]}.\n"
                                                            f"Выберите, что вы хотите изменить:",
@@ -45,7 +47,8 @@ def setup_admin_handlers(bot):
                 bot.send_message(callback.message.chat.id, f"Введите новое имя")
                 bot.register_next_step_handler(callback.message, process_update_name)
             else:
-                bot.send_message(callback.message.chat.id, f"Введите новый список групп через запятую. Например: 234, 235, 236")
+                bot.send_message(callback.message.chat.id, f"Введите новый список групп через запятую. "
+                                                           f"Например: 234, 235, 236")
                 bot.register_next_step_handler(callback.message, process_update_group)
         except Exception as e:
             logging.error(f"Ошибка в handle_update_request: {e}")
@@ -54,7 +57,7 @@ def setup_admin_handlers(bot):
     def process_update_name(message):
         try:
             new_name = message.text
-            if update_admin_info_db(message.from_user.id, new_full_name=new_name):
+            if update_admin_info_db(message.from_user.id, new_full_name = new_name):
                 admin = get_admin(message.from_user.id)
                 bot.send_message(message.chat.id, "Информация изменена!\n"
                                                   f"Ваше имя: {admin[2]}\n"
@@ -69,7 +72,7 @@ def setup_admin_handlers(bot):
     def process_update_group(message):
         try:
             new_group = message.text
-            if update_admin_info_db(message.from_user.id, new_groups_of_students=new_group):
+            if update_admin_info_db(message.from_user.id, new_groups_of_students = new_group):
                 admin = get_admin(message.from_user.id)
                 bot.send_message(message.chat.id, "Информация изменена!\n"
                                                   f"Ваше имя: {admin[2]}\n"
@@ -80,3 +83,62 @@ def setup_admin_handlers(bot):
         except Exception as e:
             logging.error(f"Ошибка в process_update_group: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка. Попробуйте позже.")
+
+    @bot.callback_query_handler(func = lambda callback: callback.data in ['admin_task'])
+    def get_list_of_task_for_admin(callback):
+        try:
+            admin = get_admin(callback.message.chat.id)
+            if admin:
+                task = get_task_for_admin(admin[3])
+                if task:
+                    text_message = 'Доступные задания:\n' + task + 'Выберите действие ниже или нажмите /start'
+                    markup = types.InlineKeyboardMarkup()
+                    markup.add(
+                        types.InlineKeyboardButton('Получить файл с ответами', callback_data = 'get_ans_pdf_for_admin'))
+                    bot.send_message(callback.message.chat.id, text_message, reply_markup = markup)
+                else:
+                    bot.send_message(callback.message.chat.id, "Нет доступных заданий",
+                                     reply_markup = admin_keyboard())
+            else:
+                bot.send_message(callback.message.chat.id,
+                                 "Вы не найдены в базе данных. Возможно, вас удалили из администраторов. "
+                                 "Для продолжения нажмите /start")
+
+        except Exception as e:
+            logging.error(f"Ошибка в get_list_of_task_for_admin: {e}")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка. Попробуйте позже.")
+
+    @bot.callback_query_handler(func = lambda callback: callback.data in ['get_ans_pdf_for_admin'])
+    def get_ans_for_admin(callback):
+        try:
+            bot.send_message(callback.message.chat.id, "Введите номер задания:")
+            bot.register_next_step_handler(callback.message, process_get_task_id_from_admin)
+        except Exception as e:
+            logging.error(f"Ошибка в get_ans_for_admin: {e}")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка. Попробуйте позже.")
+
+    def process_get_task_id_from_admin(message):
+        try:
+            task_id = message.text.strip()
+            task_info = get_task_by_pk(task_id)
+            admin_info = get_admin(message.from_user.id)
+            if task_info and task_info[5] == 0 or not task_info:
+                bot.send_message(message.chat.id, "Вы ввели неправильный номер, попробуйте ещё раз:")
+                bot.register_next_step_handler(message, process_get_task_id_from_admin)
+                return
+            groups_string = admin_info[3]
+            groups = [group.strip() for group in groups_string.split(',')]
+
+            for group in groups:
+                pdf_path_task = f"task/{task_info[1]}/{task_info[1]}_ans_for_group_{group}.pdf"
+                if os.path.exists(pdf_path_task):
+                    with open(pdf_path_task, "rb") as pdf1:
+                        bot.send_document(message.chat.id, pdf1,
+                                          caption = f'Задание: {task_info[1]}\nОтветы для группы: {group}')
+            bot.send_message(
+                message.chat.id,
+                f'Выберите следующее действие', reply_markup = admin_keyboard())
+
+        except Exception as e:
+            logging.error(f"Ошибка в def process_get_task_id_from_student: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")

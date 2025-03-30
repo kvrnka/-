@@ -61,9 +61,21 @@ def is_unique_task(task_name):
 
     conn.close()
     if result:
-        return False # название не уникально
-    else:
-        return True
+        # название не уникально
+        return False
+    return True
+
+
+def parse_deadline(task):
+    return datetime.strptime(task[2], "%d.%m.%Y %H:%M")
+
+
+def from_list_to_task_text(tasks):
+    sorted_tasks = sorted(tasks, key = parse_deadline)
+    text = ''
+    for task in sorted_tasks:
+        text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nНомер: {task[0]}\n\n'
+    return text
 
 
 def get_unpublished_tasks():
@@ -78,16 +90,7 @@ def get_unpublished_tasks():
     tasks = cursor.fetchall()
     conn.close()
 
-    def parse_deadline(task):
-        return datetime.strptime(task[2], "%d.%m.%Y %H:%M")
-
-    sorted_tasks = sorted(tasks, key = parse_deadline)
-
-    text = ''
-
-    for task in sorted_tasks:
-        text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nНомер: {task[0]}\n\n'
-
+    text = from_list_to_task_text(tasks)
     return text
 
 
@@ -105,16 +108,7 @@ def get_publish_task_for_student_by_group(group):
     tasks = cursor.fetchall()
     conn.close()
 
-    def parse_deadline(task):
-        return datetime.strptime(task[2], "%d.%m.%Y %H:%M")
-
-    sorted_tasks = sorted(tasks, key = parse_deadline)
-
-    text = ''
-
-    for task in sorted_tasks:
-        text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nНомер: {task[0]}\n\n'
-
+    text = from_list_to_task_text(tasks)
     return text
 
 
@@ -130,16 +124,30 @@ def get_published_tasks():
     tasks = cursor.fetchall()
     conn.close()
 
-    def parse_deadline(task):
-        return datetime.strptime(task[2], "%d.%m.%Y %H:%M")
+    text = from_list_to_task_text(tasks)
+    return text
 
-    sorted_tasks = sorted(tasks, key = parse_deadline)
 
-    text = ''
+def get_task_for_admin(groups):
+    create_db_task()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
 
-    for task in sorted_tasks:
-        text += f'Название работы: {task[1]}\nДедлайн: {task[2]}\nГруппы: {task[3]}\nНомер: {task[0]}\n\n'
+    groups_list = [group.strip() for group in groups.split(',')]
+    query = """
+        SELECT * FROM tasks
+        WHERE is_public = 1 AND (
+            target_groups = 'все' OR
+            {} 
+        )
+        """.format(' OR '.join([f"target_groups LIKE ?" for _ in groups_list]))
 
+    params = tuple([f"%{group}%" for group in groups_list])
+    cursor.execute(query, params)
+    tasks = cursor.fetchall()
+
+    conn.close()
+    text = from_list_to_task_text(tasks)
     return text
 
 
@@ -191,7 +199,7 @@ def update_task_deadline(task_id, new_deadline):
 
 
 def delete_task(task_id):
-    create_db_task
+    create_db_task()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
