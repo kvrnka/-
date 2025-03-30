@@ -7,7 +7,7 @@ from databases_methods.list_of_students_methods import (add_by_excel, get_list_o
                                                         delete_student_from_list)
 from databases_methods.key_for_admin import add_key
 from databases_methods.tasks_methods import (add_task, make_public, get_unpublished_tasks, get_published_tasks,
-                                             update_task_deadline, delete_task)
+                                             update_task_deadline, delete_task, is_unique_task)
 from generator import generate_pdf
 
 logging.basicConfig(
@@ -221,7 +221,11 @@ def setup_main_admin_handlers(bot):
 
     def process_name_of_new_task(message):
         try:
-            task_name = message.text
+            task_name = message.text.strip()
+            if not is_unique_task(task_name):
+                bot.send_message(message.chat.id, "Задание с таким названием уже есть. Введите уникальное название:")
+                bot.register_next_step_handler(message, process_name_of_new_task)
+                return
             bot.send_message(message.chat.id, "Введите дедлайн (формат: ДД.ММ.ГГГГ ЧЧ:ММ):")
             bot.register_next_step_handler(message, process_deadline_of_new_task, task_name)
         except Exception as e:

@@ -64,7 +64,7 @@ def start(message):
 # узнаем фио пользователя
 def process_fio(message):
     try:
-        full_name = message.text
+        full_name = message.text.strip()
 
         parts = full_name.split()
         if len(parts) < 2:
@@ -75,6 +75,7 @@ def process_fio(message):
         first_name = parts[1]
         name = ''
         for n in parts:
+            n = n.strip()
             name += n + ' '
 
         name = name[:-1]

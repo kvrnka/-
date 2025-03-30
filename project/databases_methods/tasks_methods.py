@@ -51,6 +51,20 @@ def add_task(name_of_task, deadline, target_groups):
     return primary_key
 
 
+def is_unique_task(task_name):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT 1 FROM tasks WHERE name_of_task = ? LIMIT 1", (task_name,))
+    result = cursor.fetchone()
+
+    conn.close()
+    if result:
+        return False # название не уникально
+    else:
+        return True
+
+
 def get_unpublished_tasks():
     create_db_task()
     conn = sqlite3.connect(db_path)
