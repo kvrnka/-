@@ -216,8 +216,8 @@ def delete_task(task_id):
 
     if result:
         task_name = result[0]
-        TASK_DIR = os.path.join(BASE_DIR, "..", "task")
-        task_folder = os.path.join(TASK_DIR, task_name)
+        task_dir = os.path.join(BASE_DIR, "..", "task")
+        task_folder = os.path.join(task_dir, task_name)
         if os.path.exists(task_folder):
             try:
                 shutil.rmtree(task_folder)

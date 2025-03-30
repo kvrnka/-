@@ -9,6 +9,7 @@ from databases_methods.key_for_admin import add_key
 from databases_methods.tasks_methods import (add_task, make_public, get_unpublished_tasks, get_published_tasks,
                                              update_task_deadline, delete_task, is_unique_task, get_task_by_pk)
 from generator import generate_pdf
+from notification import send_notification
 
 logging.basicConfig(
     filename = "bot_errors.log",
@@ -311,6 +312,8 @@ def setup_main_admin_handlers(bot):
         try:
             if message.text.lower() == 'да':
                 make_public(pk)
+                task_info = get_task_by_pk(pk)
+                send_notification(task_info)
                 bot.send_message(message.chat.id, f'Вы опубликовали задание! Теперь оно доступно студентам.',
                                  reply_markup = main_admin_keyboard())
             else:
@@ -388,14 +391,20 @@ def setup_main_admin_handlers(bot):
                     with open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2:
                         bot.send_document(message.chat.id, pdf1, caption = f"Условия для {task_info[1]}")
                         bot.send_document(message.chat.id, pdf2, caption = f"Ответы для {task_info[1]}")
-                    bot.send_message(message.chat.id, f'Выберите следующее действие:', 
+                    bot.send_message(message.chat.id, f'Выберите следующее действие:',
                                      reply_markup = main_admin_keyboard())
             elif action == 'change_task_deadline':
                 bot.send_message(message.chat.id, "Введите новый дедлайн (формат: ДД.ММ.ГГГГ ЧЧ:ММ): ")
                 bot.register_next_step_handler(message, process_change_deadline, task_id)
             elif action == 'make_public_task':
-                make_public(task_id)
-                bot.send_message(message.chat.id, f'Задание опубликовано!', reply_markup = main_admin_keyboard())
+                task_info = get_task_by_pk(task_id)
+                if task_info[5]:
+                    bot.send_message(message.chat.id, 'Задание уже опубликовано', reply_markup = main_admin_keyboard())
+                else:
+                    make_public(task_id)
+                    send_notification(task_info)
+                    bot.send_message(message.chat.id, f'Задание опубликовано! '
+                                                      f'Студентам придёт уведомление о новом задании.', reply_markup = main_admin_keyboard())
             else:
                 delete_task(task_id)
                 bot.send_message(message.chat.id, f'Задание удалено', reply_markup = main_admin_keyboard())

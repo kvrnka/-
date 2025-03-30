@@ -38,7 +38,7 @@ def add_student(tg_id, student_group):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    if id_from_list != None:
+    if id_from_list:
         cursor.execute(
             "INSERT OR IGNORE INTO students (tg_id, student_group, full_name, id_from_list) VALUES (?, ?, ?, ?)",
             (tg_id, student_group, full_name, id_from_list))
@@ -65,6 +65,15 @@ def get_student_by_tg_id(tg_id):
 
     conn.close()
     return student
+
+
+def get_students_by_list_id(id_from_list):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM students WHERE id_from_list = ?", (id_from_list,))
+    students = cursor.fetchall()
+    conn.close()
+    return students
 
 
 def update_id_of_student_from_list(name, group, id_from_list):
