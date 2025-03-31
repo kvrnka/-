@@ -77,11 +77,19 @@ def get_list_of_main_admin():
     return list_of_admin
 
 
-def delete_main_admin_by_username(tg_username):
+def delete_main_admin_by_username(tg_usernames):
+    create_db_main_admin()
+    tg_user = tg_usernames.split(", ")
+
+    deleted_rows = 0
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    cursor.execute("DELETE FROM main_admin WHERE tg_username = ?", (tg_username,))
-    conn.commit()
+    for user in tg_user:
+        cursor.execute("DELETE FROM main_admin WHERE tg_username = ?", (user,))
+        conn.commit()
+        deleted_rows += cursor.rowcount
 
     conn.close()
+
+    return deleted_rows, len(tg_user)

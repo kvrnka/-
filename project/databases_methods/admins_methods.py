@@ -63,6 +63,7 @@ def get_admin(tg_id):
 
 
 def delete_admin_by_username(tg_usernames):
+    create_db_admin()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -77,7 +78,7 @@ def delete_admin_by_username(tg_usernames):
 
     conn.close()
 
-    return deleted_rows == len(tg_user)
+    return deleted_rows, len(tg_user)
 
 
 def get_all_admin():
@@ -103,7 +104,6 @@ def get_all_admin():
     return list_of_admin
 
 
-# доделать
 def update_admin_info(tg_id, new_groups_of_students=None, new_full_name=None):
     create_db_admin()
 

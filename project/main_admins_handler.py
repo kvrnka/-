@@ -70,7 +70,8 @@ def setup_main_admin_handlers(bot):
             else:
                 bot.send_message(callback.message.chat.id,
                                  f"Введите телеграм ник администратора без знака '@', которого хотите удалить. "
-                                 f"Если хотите удалить несколько администраторов, введите их ники через запятую.\n"
+                                 f"Если хотите удалить несколько администраторов, "
+                                 f"введите их ники через запятую и пробел.\n"
                                  f"Например: petrov, ivanov")
                 bot.register_next_step_handler(callback.message, process_delete_admin)
         except Exception as e:
@@ -94,8 +95,11 @@ def setup_main_admin_handlers(bot):
     def process_create_password(message, type_admin):
         try:
             password = message.text
+            if password == '/start':
+                return
             if search_key(password):
-                bot.send_message(message.chat.id, f"Пароль сохранен! Попробуйте ещё раз:")
+                bot.send_message(message.chat.id, f"Такой пароль уже существует! "
+                                                  f"Попробуйте ещё раз или нажмите /start:")
                 bot.register_next_step_handler(message, process_create_password, type_admin)
                 return
             tg_id = message.from_user.id
@@ -103,8 +107,13 @@ def setup_main_admin_handlers(bot):
                 add_key(tg_id, password, 'main')
             else:
                 add_key(tg_id, password, 'not_main')
-            bot.send_message(message.chat.id, f"Пароль сохранен! Выдайте этот пароль людям, "
-                                              f"которые должны зарегистрироваться, как администраторы.")
+            if search_key(password):
+                bot.send_message(message.chat.id, f"Пароль сохранен! Выдайте этот пароль людям, "
+                                                  f"которые должны зарегистрироваться, как администраторы.",
+                                 reply_markup = main_admin_keyboard())
+            else:
+                bot.send_message(message.chat.id, f"Не удалось сохранить пароль.",
+                                 reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_create_password: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз ввести пароль.")
@@ -112,13 +121,20 @@ def setup_main_admin_handlers(bot):
     def process_delete_admin(message):
         try:
             tg_nik = message.text
-            check = delete_admin_by_username(tg_nik)
-            new_list = get_all_admin()
-            if check:
-                if new_list:
+            check1, count = delete_admin_by_username(tg_nik)
+            check2, count = delete_main_admin_by_username(tg_nik)
+            new_list_admin = get_all_admin()
+            new_list_main_admin = get_list_of_main_admin()
+            text = ''
+            if new_list_main_admin:
+                text = 'Главные администраторы:\n' + new_list_main_admin
+            if new_list_admin:
+                text += 'Ассистенты:\n' + new_list_admin
+            if check1 + check2 == count:
+                if text:
                     bot.send_message(message.chat.id,
                                      f"Пользователи успешно удалены из администраторов. Новый список администраторов:\n"
-                                     f"{new_list}", reply_markup = main_admin_keyboard())
+                                     f"{text}", reply_markup = main_admin_keyboard())
                 else:
                     bot.send_message(message.chat.id,
                                      f"Пользователи успешно удалены из администраторов. "
@@ -128,7 +144,7 @@ def setup_main_admin_handlers(bot):
                 bot.send_message(message.chat.id,
                                  f"Не удалось удалить какого-то пользователя из администраторов. "
                                  f"Список на данный момент: \n"
-                                 f"{new_list}", reply_markup = main_admin_keyboard())
+                                 f"{text}", reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_delete_admin: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
