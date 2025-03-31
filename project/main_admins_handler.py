@@ -2,6 +2,7 @@ import logging
 from telebot import types
 import os
 import re
+from datetime import datetime
 from databases_methods.admins_methods import get_all_admin, delete_admin_by_username
 from databases_methods.main_admin_methods import get_list_of_main_admin, delete_main_admin_by_username
 from databases_methods.list_of_students_methods import (add_by_excel, get_list_of_students, add_student_in_list,
@@ -104,6 +105,7 @@ def setup_main_admin_handlers(bot):
                 return
             tg_id = message.from_user.id
             if type_admin == 'main':
+                print("i'm here")
                 add_key(tg_id, password, 'main')
             else:
                 add_key(tg_id, password, 'not_main')
@@ -205,7 +207,7 @@ def setup_main_admin_handlers(bot):
             name = message.text.strip()
             if name == '/start':
                 return
-            pattern = r"^[А-ЯЁа-яёA-Za-z-]+\s[А-ЯЁа-яёA-Za-z-]+,\s*\d+$"
+            pattern = r"^[А-ЯЁа-яёA-Za-z-]+(?:\s[А-ЯЁа-яёA-Za-z-]+){1,2},\s*\d+$"
             lines = name.split('\n')
             for line in lines:
                 if not re.match(pattern, line.strip()):
@@ -214,7 +216,7 @@ def setup_main_admin_handlers(bot):
                     return
             add_student_in_list(name)
             list_of_students = get_list_of_students()
-            bot.send_message(message.chat.id, f"Список изменён:\n"
+            bot.send_message(message.chat.id, f"Список изменён:\n\n"
                                               f"{list_of_students}"
                                               f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
         except Exception as e:
@@ -226,12 +228,12 @@ def setup_main_admin_handlers(bot):
             numbers = message.text
             if delete_student_from_list(numbers):
                 list_of_students = get_list_of_students()
-                bot.send_message(message.chat.id, f"Все выбранные студенты удалены, обновленный список:\n"
+                bot.send_message(message.chat.id, f"Все выбранные студенты удалены, обновленный список:\n\n"
                                                   f"{list_of_students}"
                                                   f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
             else:
                 list_of_students = get_list_of_students()
-                bot.send_message(message.chat.id, f"Не удалось удалить студента, список на данный момент:\n"
+                bot.send_message(message.chat.id, f"Не удалось удалить студента, список на данный момент:\n\n"
                                                   f"{list_of_students}"
                                                   f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
         except Exception as e:
@@ -270,7 +272,7 @@ def setup_main_admin_handlers(bot):
 
             list_of_students = get_list_of_students()
             text = response + '\n' + list_of_students
-            bot.send_message(message.chat.id, text)
+            bot.send_message(message.chat.id, text, reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в handle_document: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
@@ -299,14 +301,20 @@ def setup_main_admin_handlers(bot):
 
     def process_deadline_of_new_task(message, task_name):
         try:
-            deadline = message.text
+            deadline = message.text.strip()
             pattern = r"^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$"
             if not re.match(pattern, deadline):
                 bot.send_message(message.chat.id, "Некорректный формат! Введите дату в формате ДД.ММ.ГГГГ ЧЧ:ММ")
                 bot.register_next_step_handler(message, process_deadline_of_new_task, task_name)
                 return
+            try:
+                datetime.strptime(deadline, "%d.%m.%Y %H:%M")
+            except ValueError:
+                bot.send_message(message.chat.id, "Некорректная дата или время! Проверьте ввод и повторите попытку.")
+                bot.register_next_step_handler(message, process_deadline_of_new_task, task_name)
+                return
             bot.send_message(message.chat.id,
-                             "Для кого предназначено задание? Введите номера групп через запятую "
+                             "Для кого предназначено задание? Введите номера групп через запятую и пробел"
                              "(234, 235, 236) или напишите 'все':")
             bot.register_next_step_handler(message, process_target_group_of_new_task, task_name, deadline)
         except Exception as e:
@@ -315,7 +323,14 @@ def setup_main_admin_handlers(bot):
 
     def process_target_group_of_new_task(message, task_name, deadline):
         try:
-            target_group = message.text
+            target_group = message.text.strip()
+            if target_group == '/start':
+                return
+            pattern = r"^\d+(,\s*\d+)*$"
+            if target_group.lower() != 'все' and not re.fullmatch(pattern, target_group):
+                bot.send_message(message.chat.id, "Некорректный формат! Повторите попытку или нажмите /start.")
+                bot.register_next_step_handler(message, process_target_group_of_new_task, task_name, deadline)
+                return
             bot.send_message(
                 message.chat.id,
                 "Введите размер системы для каждой задачи в варианте.\n\n"
@@ -330,10 +345,13 @@ def setup_main_admin_handlers(bot):
     def process_system_size(message, task_name, deadline, target_group):
         try:
             system_size = message.text.strip()
+            if system_size == '/start':
+                return
             pattern = r"(\d+)(,\s*\d+)*"
             if not re.fullmatch(pattern, system_size):
                 bot.send_message(message.chat.id,
-                                 f'Некорректный формат! Введите через запятую и пробел (например "2, 3, 4")')
+                                 f'Некорректный формат! Введите через запятую и пробел '
+                                 f'(например "2, 3, 4") или нажмите /start')
                 bot.register_next_step_handler(message, process_system_size, task_name, deadline, target_group)
                 return
 
@@ -437,11 +455,13 @@ def setup_main_admin_handlers(bot):
 
     def get_task_number(message, action):
         try:
-            task_id = message.text
+            task_id = message.text.strip()
+            if task_id == '/start':
+                return
             task_info = get_task_by_pk(task_id)
-            if not task_info:
+            if not task_id.isdigit() or not task_info:
                 bot.send_message(message.chat.id, f'Задание не найдено. Возможно, вы ввели неверный номер задания. '
-                                                  f'Попробуйте ввести ещё раз:')
+                                                  f'Попробуйте ввести ещё раз или нажмите /start:')
                 bot.register_next_step_handler(message, get_task_number, action)
                 return
             if action == 'get_task_and_answer':
@@ -475,14 +495,19 @@ def setup_main_admin_handlers(bot):
 
     def process_change_deadline(message, task_id):
         try:
-            new_deadline = message.text
+            new_deadline = message.text.strip()
             pattern = r"^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$"
             if not re.match(pattern, new_deadline):
                 bot.send_message(message.chat.id, "Некорректный формат! Введите дату в формате ДД.ММ.ГГГГ ЧЧ:ММ")
                 bot.register_next_step_handler(message, process_change_deadline, task_id)
                 return
+            try:
+                datetime.strptime(new_deadline, "%d.%m.%Y %H:%M")
+            except ValueError:
+                bot.send_message(message.chat.id, "Некорректная дата или время! Проверьте ввод и повторите попытку.")
+                bot.register_next_step_handler(message, process_change_deadline, task_id)
+                return
             update_task_deadline(task_id, new_deadline)
-            # здесь по хорошему снова список кидать
             bot.send_message(message.chat.id, "Дедлайн обновлён!", reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_change_deadline: {e}")

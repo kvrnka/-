@@ -16,8 +16,9 @@ def create_db_key():
     # Создаём таблицу, если её нет
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS key_for_admin (
-        creator_tg_id INTEGER UNIQUE,
-        key_ INTEGER,
+        key_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        creator_tg_id INTEGER,
+        key_ TEXT,
         date_of_creation TEXT,
         type_admin TEXT
     )
@@ -29,6 +30,8 @@ def create_db_key():
 
 def add_key(tg_id, new_key, type_admin):
     create_db_key()
+
+    print("i'm in add_key")
 
     now = datetime.now()
     formatted_time = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -50,7 +53,7 @@ def search_key(key_):
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM key_for_admin WHERE key_ = ?", (key_,))
-    keys = cursor.fetchall()  # возможно здесь надо fetchall
+    keys = cursor.fetchall()
 
     conn.close()
 
@@ -63,10 +66,10 @@ def search_key(key_):
     date_now = datetime.strptime(formatted_time, "%Y-%m-%d %H:%M:%S")
 
     for res in keys:
-        date_past_str = res[2]
+        date_past_str = res[3]
         date_past = datetime.strptime(date_past_str, "%Y-%m-%d %H:%M:%S")
         diff = date_now - date_past
-        if diff <= timedelta(days = 3):
+        if diff <= timedelta(days = 2):
             return True, res[-1]
 
     return False

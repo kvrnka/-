@@ -106,7 +106,8 @@ def generate_tex(task_info, count_of_task, count_of_eq):
     if group.lower() == 'все':
         groups = get_unique_group_numbers()
     else:
-        groups = group.split(", ")
+        groups = [groups_.strip() for groups_ in group.split(',')]
+        # groups = group.split(", ")
         groups = sorted(groups)
 
     all_task_latex = ""  # для общего файла с заданиями

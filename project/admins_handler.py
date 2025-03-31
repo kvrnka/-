@@ -4,6 +4,9 @@ import re
 import os
 from databases_methods.admins_methods import update_admin_info as update_admin_info_db, get_admin
 from databases_methods.tasks_methods import get_task_for_admin, get_task_by_pk
+from databases_methods.key_for_admin import search_key
+from databases_methods.main_admin_methods import add_main_admin
+from main_admins_handler import main_admin_keyboard
 
 logging.basicConfig(
     filename = "bot_errors.log",
@@ -14,6 +17,7 @@ logging.basicConfig(
 
 def admin_keyboard():
     markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('Стать главным администратором', callback_data = 'become_main_admin'))
     markup.add(types.InlineKeyboardButton('Изменить информацию о себе', callback_data = 'admin_edit_info'))
     markup.add(
         types.InlineKeyboardButton('Просмотр доступных работ', callback_data = 'admin_task'))
@@ -21,6 +25,37 @@ def admin_keyboard():
 
 
 def setup_admin_handlers(bot):
+    @bot.callback_query_handler(func = lambda callback: callback.data in ['become_main_admin'])
+    def became_main_admin_from_admin(callback):
+        try:
+            bot.send_message(callback.message.chat.id, f"Введите код доступа:")
+            bot.register_next_step_handler(callback.message, process_main_admin_from_admin)
+        except Exception as e:
+            logging.error(f"Ошибка в became_main_admin_from_admin: {e}")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка. Попробуйте позже.\n/start")
+
+    def process_main_admin_from_admin(message):
+        try:
+            key = message.text
+            if key == '/start':
+                return
+            res = search_key(key)
+            if res and res[-1] == 'main':
+                add_main_admin(message.from_user.id, message.from_user.username, '', message.from_user.first_name)
+                bot.send_message(message.chat.id,
+                                 "Вы зарегистрированы, как главный администратор!",
+                                 reply_markup = main_admin_keyboard())
+            else:
+                bot.send_message(message.chat.id,
+                                 "Не удалось зарегистрироваться. "
+                                 "Возможно, вы ввели неверный код, или код уже устарел. \n"
+                                 "Попробуйте ввести код ещё раз или нажмите /start:")
+                bot.register_next_step_handler(message, process_main_admin_from_admin)
+                return
+        except Exception as e:
+            logging.error(f"Ошибка в process_main_admin_from_admin: {e}")
+            bot.send_message(message.chat.id, "Произошла ошибка. Попробуйте позже.\n/start")
+
     @bot.callback_query_handler(func = lambda callback: callback.data in ['admin_edit_info'])
     def update_admin_info(callback):
         try:
@@ -126,10 +161,12 @@ def setup_admin_handlers(bot):
     def process_get_task_id_from_admin(message):
         try:
             task_id = message.text.strip()
+            if task_id == '/start':
+                return
             task_info = get_task_by_pk(task_id)
             admin_info = get_admin(message.from_user.id)
-            if task_info and task_info[5] == 0 or not task_info:
-                bot.send_message(message.chat.id, "Вы ввели неправильный номер, попробуйте ещё раз:")
+            if task_info and task_info[5] == 0 or not task_info or not task_id.isdigit():
+                bot.send_message(message.chat.id, "Вы ввели неправильный номер, попробуйте ещё раз или введите /start:")
                 bot.register_next_step_handler(message, process_get_task_id_from_admin)
                 return
             groups_string = admin_info[3]

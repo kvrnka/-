@@ -31,7 +31,7 @@ def setup_student_handlers(bot):
             student = get_student_by_tg_id(callback.message.chat.id)
             if student:
                 markup = types.InlineKeyboardMarkup()
-                markup.add(types.InlineKeyboardButton('Зарегистрироваться как преподаватель или ассистент',
+                markup.add(types.InlineKeyboardButton('Зарегистрироваться как \nпреподаватель или ассистент',
                                                       callback_data = 'new_admin_from_student'))
                 markup.add(types.InlineKeyboardButton('Изменить имя', callback_data = 'update_name'))
                 markup.add(types.InlineKeyboardButton('Изменить группу', callback_data = 'update_group'))
@@ -91,8 +91,10 @@ def setup_student_handlers(bot):
     def process_group_for_admin_from_student(message):
         try:
             groups = message.text.strip()
-            if re.fullmatch(r"(\d+)(,\s*\d+)*", groups):
-                bot.send_message(message.chat.id, f'Неправильный формат! Попробуйте снова:')
+            if groups == '/start':
+                return
+            if not re.fullmatch(r"^\d+(,\s*\d+)*$", groups):
+                bot.send_message(message.chat.id, f'Неправильный формат! Попробуйте снова или нажмите /start:')
                 bot.register_next_step_handler(message, process_group_for_admin_from_student)
                 return
             add_admin(message.from_user.id, message.from_user.username, groups)
@@ -158,8 +160,12 @@ def setup_student_handlers(bot):
             if student:
                 group = student[1]
                 task = get_publish_task_for_student_by_group(group)
+                text_message = ''
+                if not student[-1]:
+                    text_message += ('Вас нет в списке лектора, и вы не можете получить свой вариант, '
+                                     'но можете посмотреть список работ, доступный для вашей группы:\n\n')
                 if task:
-                    text_message = 'Доступные задания:\n' + task + 'Выберите действие ниже или нажмите /start'
+                    text_message += 'Доступные задания:\n' + task + 'Выберите действие ниже или нажмите /start'
                     markup = types.InlineKeyboardMarkup()
                     markup.add(
                         types.InlineKeyboardButton('Получить файл с заданием', callback_data = 'get_pdf_for_student'))
@@ -186,14 +192,16 @@ def setup_student_handlers(bot):
     def process_get_task_id_from_student(message):
         try:
             task_id = message.text.strip()
+            if task_id == '/start':
+                return
             task_info = get_task_by_pk(task_id)
             student_info = get_student_by_tg_id(message.from_user.id)
-            if not task_info:
-                bot.send_message(message.chat.id, "Вы ввели неправильный номер, попробуйте ещё раз:")
+            if not task_id.isdigit() or not task_info:
+                bot.send_message(message.chat.id, "Вы ввели неправильный номер, попробуйте ещё раз или нажмите /start:")
                 bot.register_next_step_handler(message, process_get_task_id_from_student)
                 return
             if task_info[5] == 0 or not (str(student_info[1]) in task_info[3] or task_info[3] == 'все'):
-                bot.send_message(message.chat.id, "Вы ввели неправильный номер, попробуйте ещё раз:")
+                bot.send_message(message.chat.id, "Вы ввели неправильный номер, попробуйте ещё раз или нажмите /start:")
                 bot.register_next_step_handler(message, process_get_task_id_from_student)
                 return
             pdf_path_task = f"task/{task_info[1]}/{task_info[1]}_{student_info[2]}_{student_info[1]}.pdf"

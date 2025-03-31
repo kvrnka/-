@@ -22,7 +22,8 @@ def send_notification(task_info):
         if group.lower() == 'все':
             groups = get_unique_group_numbers()
         else:
-            groups = group.split(", ")
+            groups = [group_.strip() for group_ in group.split(',')]
+            # groups = group.split(", ")
         for group in groups:
             students_from_list = get_students_by_group(int(group))
             for one_student_from_list in students_from_list:

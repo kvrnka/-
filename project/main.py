@@ -138,7 +138,6 @@ def process_group(message):
 def process_new_admin(message):
     try:
         key = message.text
-        res = search_key(key)
         if key == '/start':
             return
         res = search_key(key)
@@ -155,7 +154,8 @@ def process_new_admin(message):
                              "Вы зарегистрированы, как главный администратор!")
         elif res[-1] == 'not_main':
             bot.send_message(message.chat.id,
-                             "Введите группы, за которые вы ответственны через запятую. Например: 241, 243, 244")
+                             "Введите группы, за которые вы ответственны через запятую и пробел. "
+                             "Например: 241, 243, 244")
             bot.register_next_step_handler(message, process_group_for_admin)
     except Exception as e:
         logging.error(f"Ошибка в process_new_admin: {e}")
@@ -165,8 +165,10 @@ def process_new_admin(message):
 def process_group_for_admin(message):
     try:
         groups = message.text.strip()
-        if re.fullmatch(r"(\d+)(,\s*\d+)*", groups):
-            bot.send_message(message.chat.id, f'Неправильный формат! Попробуйте снова:')
+        if groups == '/start':
+            return
+        if not re.fullmatch(r"^\d+(,\s*\d+)*$", groups):
+            bot.send_message(message.chat.id, f'Неправильный формат! Попробуйте снова или нажмите /start:')
             bot.register_next_step_handler(message, process_group_for_admin)
             return
         add_admin(message.from_user.id, message.from_user.username, groups)

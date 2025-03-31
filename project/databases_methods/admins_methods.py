@@ -67,7 +67,9 @@ def delete_admin_by_username(tg_usernames):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    tg_user = tg_usernames.split(", ")
+    tg_user = [user.strip() for user in tg_usernames.split(",")]
+
+    # tg_user = tg_usernames.split(",")
 
     deleted_rows = 0
 
