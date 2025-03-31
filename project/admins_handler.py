@@ -1,5 +1,6 @@
 import logging
 from telebot import types
+import re
 import os
 from databases_methods.admins_methods import update_admin_info as update_admin_info_db, get_admin
 from databases_methods.tasks_methods import get_task_for_admin, get_task_by_pk
@@ -62,7 +63,7 @@ def setup_admin_handlers(bot):
                 bot.send_message(message.chat.id, "Информация изменена!\n"
                                                   f"Ваше имя: {admin[2]}\n"
                                                   f"Ваша группа: {admin[3]}",
-                                 reply_markup = admin_keyboard())  # добавить вывод информации
+                                 reply_markup = admin_keyboard())
             else:
                 bot.send_message(message.chat.id, "Не удалось изменить информацию")
         except Exception as e:
@@ -71,7 +72,13 @@ def setup_admin_handlers(bot):
 
     def process_update_group(message):
         try:
-            new_group = message.text
+            new_group = message.text.strip()
+            if new_group == '/start':
+                return
+            if re.fullmatch(r"(\d+)(,\s*\d+)*", new_group):
+                bot.send_message(message.chat.id, f'Неправильный формат! Попробуйте снова:')
+                bot.register_next_step_handler(message, process_update_group)
+                return
             if update_admin_info_db(message.from_user.id, new_groups_of_students = new_group):
                 admin = get_admin(message.from_user.id)
                 bot.send_message(message.chat.id, "Информация изменена!\n"
@@ -103,7 +110,6 @@ def setup_admin_handlers(bot):
                 bot.send_message(callback.message.chat.id,
                                  "Вы не найдены в базе данных. Возможно, вас удалили из администраторов. "
                                  "Для продолжения нажмите /start")
-
         except Exception as e:
             logging.error(f"Ошибка в get_list_of_task_for_admin: {e}")
             bot.send_message(callback.message.chat.id, "Произошла ошибка. Попробуйте позже.")

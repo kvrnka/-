@@ -23,7 +23,6 @@ def send_notification(task_info):
             groups = get_unique_group_numbers()
         else:
             groups = group.split(", ")
-        print('Группы', groups)
         for group in groups:
             students_from_list = get_students_by_group(int(group))
             for one_student_from_list in students_from_list:
