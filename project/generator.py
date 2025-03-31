@@ -24,11 +24,8 @@ def gaussian(a_matrix, b_matrix):
     aug_matrix = a_matrix.row_join(b_matrix)  # Расширенная матрица A|B
     latex_code = r'Составим расширенную матрицу:' + '\n\n'
     latex_code += r'\[' + sp.latex(aug_matrix) + r'\]' + '\n\n'
-
     latex_code += r'Приведём матрицу к верхнетреугольному виду:' + '\n\n'
 
-    # latex_steps = [sp.latex(aug_matrix)]
-    # phrases_steps = []
     # приводим к верхнетреугольному виду
     for col in range(n):
         latex_code += rf'{col + 1}.'
@@ -40,8 +37,6 @@ def gaussian(a_matrix, b_matrix):
                     aug_matrix.row_swap(pivot_row, row)
                     latex_code += rf'Меняем местами {col + 1} и {row + 1} строки:' + '\n\n'
                     latex_code += r'\[' + sp.latex(aug_matrix) + r'\]' + '\n\n'
-                    # phrases_steps.append(f'Меняем местами {col + 1} и {row + 1} строки:')
-                    # latex_steps.append(sp.latex(aug_matrix))
                     pivot = aug_matrix[pivot_row, col]
                     break
 
@@ -49,16 +44,12 @@ def gaussian(a_matrix, b_matrix):
             aug_matrix[pivot_row, :] /= pivot  # Приведение ведущего элемента к 1
             latex_code += rf'Делим {pivot_row + 1} строку на {pivot}:' + '\n\n'
             latex_code += r'\[' + sp.latex(aug_matrix) + r'\]' + '\n\n'
-            # phrases_steps.append(f'Делим {pivot_row + 1} на {pivot}:')
-            # latex_steps.append(sp.latex(aug_matrix))
 
         for row in range(col + 1, n):
             factor = aug_matrix[row, col]
             aug_matrix[row, :] -= factor * aug_matrix[pivot_row, :]
         latex_code += rf'Обнуляем элементы ниже ведущего:' + '\n\n'
         latex_code += r'\[' + sp.latex(aug_matrix) + r'\]' + '\n\n'
-        # phrases_steps.append(f'Обнуляем элементы ниже ведущего:')
-        # latex_steps.append(sp.latex(aug_matrix))
 
     latex_code += r'Приведём матрицу к улучшенному ступенчатому виду:' + '\n\n'
 
@@ -68,7 +59,6 @@ def gaussian(a_matrix, b_matrix):
             aug_matrix[row, :] -= factor * aug_matrix[col, :]
         latex_code += rf'Обнулим элементы выше ведущего элемента {col + 1} строки:' + '\n\n'
         latex_code += r'\[' + sp.latex(aug_matrix) + r'\]' + '\n\n'
-        # latex_steps.append(sp.latex(aug_matrix))
     return latex_code
 
 
