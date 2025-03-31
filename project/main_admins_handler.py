@@ -152,12 +152,20 @@ def setup_main_admin_handlers(bot):
     @bot.callback_query_handler(func = lambda callback: callback.data in ['edit_list_of_students'])
     def change_list_of_students(callback):
         try:
+            list_of_students = get_list_of_students()
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton('Создать новый список', callback_data = 'new_list_of_students'))
             markup.add(types.InlineKeyboardButton('Редактировать список', callback_data = 'add_or_delete_student'))
-            bot.send_message(callback.message.chat.id, f"Выберите следующее действие: \n"
-                                                       f'При выборе "Создать новый список" старый список удалится',
-                             reply_markup = markup)
+            if list_of_students:
+                bot.send_message(callback.message.chat.id, f"Список студентов на данный момент:\n{list_of_students}\n"
+                                                           f"Выберите следующее действие: \n"
+                                                           f'При выборе "Создать новый список" старый список удалится',
+                                 reply_markup = markup)
+            else:
+                bot.send_message(callback.message.chat.id, f"На данный момент список студентов пуст.\n"
+                                                           f"Выберите следующее действие: \n"
+                                                           f'При выборе "Создать новый список" старый список удалится',
+                                 reply_markup = markup)
         except Exception as e:
             logging.error(f"Ошибка в change_list_of_students: {e}")
             bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
@@ -165,13 +173,10 @@ def setup_main_admin_handlers(bot):
     @bot.callback_query_handler(func = lambda callback: callback.data in ['add_or_delete_student'])
     def edit_list_of_students(callback):
         try:
-            list_of_students = get_list_of_students()
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton('Добавить студента', callback_data = 'add_new_student'))
             markup.add(types.InlineKeyboardButton('Удалить студентов', callback_data = 'delete_old_students'))
-            bot.send_message(callback.message.chat.id, f"Список студентов: \n"
-                                                       f"{list_of_students}\n"
-                                                       f"Выберите действие:", reply_markup = markup)
+            bot.send_message(callback.message.chat.id, f"Выберите действие:", reply_markup = markup)
         except Exception as e:
             logging.error(f"Ошибка в edit_list_of_students: {e}")
             bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
@@ -184,11 +189,11 @@ def setup_main_admin_handlers(bot):
                                  f"Введите имя и группу студента через запятую. \n"
                                  f"Если вы хотите внести в список сразу несколько студентов, "
                                  f"то каждого студента записывайте с новой строки. \n"
-                                 f"Например: \nИванов Иван, 235\n Петров Петр, 236\n Светланова Светлана, 234")
+                                 f"Например: \nИванов Иван, 235\nПетров Петр, 236\nСветланова Светлана, 234")
                 bot.register_next_step_handler(callback.message, process_name_of_new_student)
             else:
                 bot.send_message(callback.message.chat.id,
-                                 f"Введите номера студентов, которых хотите удалить, "
+                                 f"Введите id студентов, которых хотите удалить, "
                                  f"через запятую и пробел. Например: 1, 4, 6")
                 bot.register_next_step_handler(callback.message, process_delete_students)
         except Exception as e:
@@ -197,7 +202,16 @@ def setup_main_admin_handlers(bot):
 
     def process_name_of_new_student(message):
         try:
-            name = message.text
+            name = message.text.strip()
+            if name == '/start':
+                return
+            pattern = r"^[А-ЯЁа-яёA-Za-z-]+\s[А-ЯЁа-яёA-Za-z-]+,\s*\d+$"
+            lines = name.split('\n')
+            for line in lines:
+                if not re.match(pattern, line.strip()):
+                    bot.send_message(message.chat.id, "Некорректный формат! Повторите попытку или введите /start.")
+                    bot.register_next_step_handler(message, process_name_of_new_student)
+                    return
             add_student_in_list(name)
             list_of_students = get_list_of_students()
             bot.send_message(message.chat.id, f"Список изменён:\n"
@@ -231,8 +245,7 @@ def setup_main_admin_handlers(bot):
                          "1) Формат файла: .xlsx или .xls \n"
                          '2) Таблица должна содержать два столбца: имена студентов '
                          '(этот столбец должен иметь название "full_name"), '
-                         'номер группы (столбец должен называться "group_number")',
-                         reply_markup = main_admin_keyboard())
+                         'номер группы (столбец должен называться "group_number")')
 
     @bot.message_handler(content_types = ['document'])
     def handle_document(message):

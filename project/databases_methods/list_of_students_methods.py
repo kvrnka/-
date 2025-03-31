@@ -119,27 +119,27 @@ def get_list_of_students():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM list_of_students")
+    cursor.execute("SELECT * FROM list_of_students ORDER BY group_number, full_name")
 
     students = cursor.fetchall()
-
     conn.close()
 
     list_of_students = ''
 
     for i in range(len(students)):
-        list_of_students += f"{students[i][0]}. " + students[i][2] + " " + str(students[i][1]) + '\n'
+        list_of_students += (f"id: {students[i][0]}. " + students[i][2] + " " +
+                             str(students[i][1]) + '\n')
 
     return list_of_students
 
 
-def get_student_from_list_by_id(id):
+def get_student_from_list_by_id(student_id):
     create_db_list_of_student()
 
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM list_of_students WHERE id = ?", (id,))
+    cursor.execute("SELECT * FROM list_of_students WHERE id = ?", (student_id,))
     student = cursor.fetchone()
 
     conn.close()
@@ -175,8 +175,8 @@ def delete_student_from_list(ids):
 
     deleted_rows = 0
 
-    for id in list_id:
-        cursor.execute("DELETE FROM list_of_students WHERE id = ?", (id,))  # Удаляем запись
+    for student_id in list_id:
+        cursor.execute("DELETE FROM list_of_students WHERE id = ?", (student_id,))  # Удаляем запись
         conn.commit()
         deleted_rows += cursor.rowcount
 
