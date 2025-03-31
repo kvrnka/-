@@ -29,7 +29,6 @@ def create_db_main_admin():
 
 def add_main_admin(tg_id, tg_username, groups_of_student, full_name):
     create_db_main_admin()
-
     user = get_user(tg_id)
     if user:
         full_name = user[3]
@@ -46,7 +45,6 @@ def add_main_admin(tg_id, tg_username, groups_of_student, full_name):
 
 def get_main_admin(tg_id):
     create_db_main_admin()
-
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -79,9 +77,7 @@ def get_list_of_main_admin():
 
 def delete_main_admin_by_username(tg_usernames):
     create_db_main_admin()
-
     tg_user = [user.strip() for user in tg_usernames.split(",")]
-    # tg_user = tg_usernames.split(", ")
 
     deleted_rows = 0
     conn = sqlite3.connect(db_path)

@@ -69,8 +69,6 @@ def delete_admin_by_username(tg_usernames):
 
     tg_user = [user.strip() for user in tg_usernames.split(",")]
 
-    # tg_user = tg_usernames.split(",")
-
     deleted_rows = 0
 
     for user in tg_user:

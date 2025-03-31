@@ -68,6 +68,7 @@ def get_student_by_tg_id(tg_id):
 
 
 def get_students_by_list_id(id_from_list):
+    create_db_student()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM students WHERE id_from_list = ?", (id_from_list,))
@@ -77,6 +78,7 @@ def get_students_by_list_id(id_from_list):
 
 
 def update_id_of_student_from_list(name, group, id_from_list):
+    create_db_student()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -92,12 +94,10 @@ def update_id_of_student_from_list(name, group, id_from_list):
 
 
 def update_student_info(tg_id, new_group = None, new_full_name = None):
-    create_db_student()  # Убеждаемся, что БД существует
-
+    create_db_student()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Получаем текущие данные студента
     cursor.execute("SELECT * FROM students WHERE tg_id = ?", (tg_id,))
     student = cursor.fetchone()
 

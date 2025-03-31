@@ -78,6 +78,7 @@ def get_students_by_group(group_number):
 
 
 def get_unique_group_numbers():
+    create_db_list_of_student()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -102,7 +103,6 @@ def add_student_in_list(text):
 
     for student in students:
         name_and_group = [elem.split() for elem in student.split(",")]
-        # name_and_group = student.split(", ")
         # 0 - имя, 1 - группа
         cursor.execute("INSERT OR IGNORE INTO list_of_students (group_number, full_name) VALUES (?, ?)",
                        (name_and_group[1], name_and_group[0]))

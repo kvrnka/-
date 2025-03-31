@@ -32,7 +32,6 @@ def create_db_task():
 
 def add_task(name_of_task, deadline, target_groups):
     create_db_task()
-
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
