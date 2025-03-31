@@ -18,7 +18,8 @@ def create_db_key():
     CREATE TABLE IF NOT EXISTS key_for_admin (
         creator_tg_id INTEGER UNIQUE,
         key_ INTEGER,
-        date_of_creation TEXT
+        date_of_creation TEXT,
+        type_admin TEXT
     )
     """)
 
@@ -26,7 +27,7 @@ def create_db_key():
     conn.close()
 
 
-def add_key(tg_id, new_key):
+def add_key(tg_id, new_key, type_admin):
     create_db_key()
 
     now = datetime.now()
@@ -35,8 +36,8 @@ def add_key(tg_id, new_key):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    cursor.execute("INSERT OR IGNORE INTO key_for_admin (creator_tg_id, key_, date_of_creation) VALUES (?, ?, ?)",
-                   (tg_id, new_key, formatted_time))
+    cursor.execute("INSERT OR IGNORE INTO key_for_admin (creator_tg_id, key_, date_of_creation, type_admin) VALUES (?, ?, ?, ?)",
+                   (tg_id, new_key, formatted_time, type_admin))
 
     conn.commit()
     conn.close()
@@ -66,6 +67,6 @@ def search_key(key_):
         date_past = datetime.strptime(date_past_str, "%Y-%m-%d %H:%M:%S")
         diff = date_now - date_past
         if diff <= timedelta(days = 3):
-            return True
+            return True, res[-1]
 
     return False

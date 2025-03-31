@@ -3,9 +3,10 @@ from telebot import types
 import os
 import re
 from databases_methods.admins_methods import get_all_admin, delete_admin_by_username
+from databases_methods.main_admin_methods import get_list_of_main_admin, delete_main_admin_by_username
 from databases_methods.list_of_students_methods import (add_by_excel, get_list_of_students, add_student_in_list,
                                                         delete_student_from_list)
-from databases_methods.key_for_admin import add_key
+from databases_methods.key_for_admin import add_key, search_key
 from databases_methods.tasks_methods import (add_task, make_public, get_unpublished_tasks, get_published_tasks,
                                              update_task_deadline, delete_task, is_unique_task, get_task_by_pk)
 from generator import generate_pdf
@@ -34,17 +35,22 @@ def setup_main_admin_handlers(bot):
     @bot.callback_query_handler(func = lambda callback: callback.data in ['list_of_admin'])
     def get_list_of_admin(callback):
         try:
+            main_admins = get_list_of_main_admin()
             admins = get_all_admin()
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton('Добавить новых администраторов', callback_data = 'add_new_admin'))
             markup.add(types.InlineKeyboardButton('Удалить администратора', callback_data = 'delete_admin'))
-            if not admins:
+            text = ''
+            if main_admins:
+                text = 'Главные администраторы:\n' + main_admins + '\n'
+            if admins:
+                text += 'Ассистенты:\n' + admins + '\n'
+            if not text:
                 bot.send_message(callback.message.chat.id, f"Список администраторов пуст.",
                                  reply_markup = markup)
             else:
-                bot.send_message(callback.message.chat.id, f"Список администраторов: \n"
-                                                           f"{admins}"
-                                                           f"Выберите следующее действие:", reply_markup = markup)
+                text += f"Выберите следующее действие:"
+                bot.send_message(callback.message.chat.id, text, reply_markup = markup)
         except Exception as e:
             logging.error(f"Ошибка в команде get_list_of_admin: {e}")
             bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз позже.")
@@ -53,12 +59,14 @@ def setup_main_admin_handlers(bot):
     def change_admins(callback):
         try:
             if callback.data == 'add_new_admin':
-                bot.send_message(callback.message.chat.id,
-                                 f"Чтобы добавить новых администраторов, вам нужно создать пароль, "
-                                 f"который будет действовать 48ч. "
-                                 f"Выдайте этот пароль людям, которые должны зарегистрироваться, как администраторы. \n"
-                                 f"Введите пароль:")
-                bot.register_next_step_handler(callback.message, process_create_password)
+                markup = types.InlineKeyboardMarkup()
+                markup.add(
+                    types.InlineKeyboardButton('Добавить главного администратора',
+                                               callback_data = 'add_new_main_admin'))
+                markup.add(types.InlineKeyboardButton('Добавить ассистента', callback_data = 'add_new_not_main_admin'))
+                bot.send_message(callback.message.chat.id, f"Чтобы добавить новых администраторов, "
+                                                           f"вам нужно создать пароль, будет действовать 48ч.\n"
+                                                           f"Выберите тип администратора:", reply_markup = markup)
             else:
                 bot.send_message(callback.message.chat.id,
                                  f"Введите телеграм ник администратора без знака '@', которого хотите удалить. "
@@ -69,12 +77,34 @@ def setup_main_admin_handlers(bot):
             logging.error(f"Ошибка в change_admins: {e}")
             bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз позже.")
 
-    def process_create_password(message):
+    @bot.callback_query_handler(func = lambda callback: callback.data in ['add_new_main_admin',
+                                                                          'add_new_not_main_admin'])
+    def change_type_of_admins(callback):
+        try:
+            if callback.data == 'add_new_main_admin':
+                bot.send_message(callback.message.chat.id, "Введите пароль:")
+                bot.register_next_step_handler(callback.message, process_create_password, 'main')
+            else:
+                bot.send_message(callback.message.chat.id, "Введите пароль:")
+                bot.register_next_step_handler(callback.message, process_create_password, 'not_main')
+        except Exception as e:
+            logging.error(f"Ошибка в change_admins: {e}")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз позже.")
+
+    def process_create_password(message, type_admin):
         try:
             password = message.text
+            if search_key(password):
+                bot.send_message(message.chat.id, f"Пароль сохранен! Попробуйте ещё раз:")
+                bot.register_next_step_handler(message, process_create_password, type_admin)
+                return
             tg_id = message.from_user.id
-            add_key(tg_id, password)
-            bot.send_message(message.chat.id, f"Пароль сохранен!")
+            if type_admin == 'main':
+                add_key(tg_id, password, 'main')
+            else:
+                add_key(tg_id, password, 'not_main')
+            bot.send_message(message.chat.id, f"Пароль сохранен! Выдайте этот пароль людям, "
+                                              f"которые должны зарегистрироваться, как администраторы.")
         except Exception as e:
             logging.error(f"Ошибка в process_create_password: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз ввести пароль.")
@@ -314,7 +344,8 @@ def setup_main_admin_handlers(bot):
                 make_public(pk)
                 task_info = get_task_by_pk(pk)
                 send_notification(task_info)
-                bot.send_message(message.chat.id, f'Вы опубликовали задание! Теперь оно доступно студентам.',
+                bot.send_message(message.chat.id, f'Вы опубликовали задание! '
+                                                  f'Студентам придёт уведомление о новом задании.',
                                  reply_markup = main_admin_keyboard())
             else:
                 bot.send_message(message.chat.id,
@@ -404,7 +435,8 @@ def setup_main_admin_handlers(bot):
                     make_public(task_id)
                     send_notification(task_info)
                     bot.send_message(message.chat.id, f'Задание опубликовано! '
-                                                      f'Студентам придёт уведомление о новом задании.', reply_markup = main_admin_keyboard())
+                                                      f'Студентам придёт уведомление о новом задании.',
+                                     reply_markup = main_admin_keyboard())
             else:
                 delete_task(task_id)
                 bot.send_message(message.chat.id, f'Задание удалено', reply_markup = main_admin_keyboard())

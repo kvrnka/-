@@ -1,5 +1,6 @@
 import sqlite3
 import os
+from users_methods import get_user
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_DIR = os.path.join(BASE_DIR, "../databases")
@@ -29,11 +30,15 @@ def create_db_main_admin():
 def add_main_admin(tg_id, tg_username, groups_of_student, full_name):
     create_db_main_admin()
 
+    user = get_user(tg_id)
+    if user:
+        full_name = user[3]
+
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    cursor.execute("INSERT OR IGNORE INTO main_admin (tg_id, tg_username, groups_of_student, full_name) VALUES (?, ?, ?, ?)",
-                   (tg_id, tg_username, groups_of_student, full_name))
+    cursor.execute("INSERT OR IGNORE INTO main_admin " "(tg_id, tg_username, groups_of_student, full_name) "
+                   "VALUES (?, ?, ?, ?)", (tg_id, tg_username, groups_of_student, full_name))
 
     conn.commit()
     conn.close()
@@ -50,3 +55,33 @@ def get_main_admin(tg_id):
 
     conn.close()
     return user
+
+
+def get_list_of_main_admin():
+    create_db_main_admin()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM main_admin")
+    admins = cursor.fetchall()
+
+    conn.close()
+
+    list_of_admin = ''
+
+    for i in range(len(admins)):
+        list_of_admin += f"{i + 1}. Имя пользователя: @" + admins[i][1] + '\n'
+        list_of_admin += "Имя: " + admins[i][3] + '\n'
+        list_of_admin += '\n'
+
+    return list_of_admin
+
+
+def delete_main_admin_by_username(tg_username):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM main_admin WHERE tg_username = ?", (tg_username,))
+    conn.commit()
+
+    conn.close()

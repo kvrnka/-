@@ -1,10 +1,12 @@
 import logging
 import os
 from telebot import types
+import re
 from databases_methods.students_methods import update_student_info, get_student_by_tg_id
 from databases_methods.tasks_methods import get_publish_task_for_student_by_group, get_task_by_pk
 from databases_methods.key_for_admin import search_key
 from databases_methods.admins_methods import add_admin
+from databases_methods.main_admin_methods import add_main_admin
 from admins_handler import admin_keyboard
 
 logging.basicConfig(
@@ -42,7 +44,7 @@ def setup_student_handlers(bot):
                                  reply_markup = students_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в continue_registration: {e}")
-            bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте позже.\n/start")
 
     @bot.callback_query_handler(func = lambda callback: callback.data in ['new_admin_from_student',
                                                                           'update_name', 'update_group'])
@@ -64,32 +66,42 @@ def setup_student_handlers(bot):
     def process_new_admin_from_student(message):
         try:
             key = message.text
+            if key == '/start':
+                return
             res = search_key(key)
-            if res:
-                bot.send_message(message.chat.id,
-                                 "Введите группы, за которые вы ответственны через запятую. Например: 241, 243, 244")
-                bot.register_next_step_handler(message, process_group_for_admin_from_student)
-            else:
+            if not res:
                 bot.send_message(message.chat.id,
                                  "Не удалось зарегистрироваться. "
                                  "Возможно, вы ввели неверный код, или код уже устарел. \n"
-                                 "Выберите следующее действие:",
-                                 reply_markup = students_keyboard())
+                                 "Попробуйте ввести код ещё раз или нажмите /start:")
+                bot.register_next_step_handler(message, process_new_admin_from_student)
+                return
+            elif res[-1] == 'not_main':
+                bot.send_message(message.chat.id,
+                                 "Введите группы, за которые вы ответственны через запятую. Например: 241, 243, 244")
+                bot.register_next_step_handler(message, process_group_for_admin_from_student)
+            elif res[-1] == 'main':
+                add_main_admin(message.from_user.id, message.from_user.username, '', message.from_user.first_name)
+                bot.send_message(message.chat.id,
+                                 "Вы зарегистрированы, как главный администратор!")
         except Exception as e:
             logging.error(f"Ошибка в process_new_admin: {e}")
-            bot.send_message(message.chat.id, "Произошла ошибка. Попробуйте еще раз.")
+            bot.send_message(message.chat.id, "Произошла ошибка. Попробуйте позже.\n/start")
 
     def process_group_for_admin_from_student(message):
         try:
-            groups = message.text.strip
-            # проверить, что вводится как надо
+            groups = message.text.strip()
+            if re.fullmatch(r"(\d+)(,\s*\d+)*", groups):
+                bot.send_message(message.chat.id, f'Неправильный формат! Попробуйте снова:')
+                bot.register_next_step_handler(message, process_group_for_admin_from_student)
+                return
             add_admin(message.from_user.id, message.from_user.username, groups)
             bot.send_message(message.chat.id,
                              "Вы успешно зарегистрировались, теперь вам доступны права администратора!",
                              reply_markup = admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_group_for_admin_from_student: {e}")
-            bot.send_message(message.chat.id, "Произошла ошибка при обработке групп. Попробуйте еще раз.")
+            bot.send_message(message.chat.id, "Произошла ошибка при обработке групп. Попробуйте позже.\n/start")
 
     def student_is_found(check, student):
         try:
@@ -107,7 +119,7 @@ def setup_student_handlers(bot):
                                  reply_markup = students_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_update_name: {e}")
-            bot.send_message(student[0], "Произошла ошибка! Попробуйте еще раз.")
+            bot.send_message(student[0], "Произошла ошибка! Попробуйте позже.\n/start")
 
     def process_update_name(message):
         try:
@@ -125,7 +137,11 @@ def setup_student_handlers(bot):
     def process_update_group(message):
         try:
             new_group = message.text
-            check = update_student_info(message.from_user.id, new_group, None)
+            if not new_group.isdigit():
+                bot.send_message(message.chat.id, f'Группа должна состоять только из цифр. Введите ещё раз:')
+                bot.register_next_step_handler(message, process_update_group)
+                return
+            check = update_student_info(message.from_user.id, int(new_group), None)
             student = get_student_by_tg_id(message.from_user.id)
             if student:
                 student_is_found(check, student)
@@ -133,7 +149,7 @@ def setup_student_handlers(bot):
                 bot.send_message(message.chat.id, f'Вы не найдены в базе данных', reply_markup = students_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_update_group: {e}")
-            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте позже.\n/start")
 
     @bot.callback_query_handler(func = lambda callback: callback.data in ['get_task_for_student'])
     def get_list_of_task_for_student(callback):
@@ -165,14 +181,18 @@ def setup_student_handlers(bot):
             bot.register_next_step_handler(callback.message, process_get_task_id_from_student)
         except Exception as e:
             logging.error(f"Ошибка в def get_list_of_task_for_student: {e}")
-            bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+            bot.send_message(callback.message.chat.id, "Произошла ошибка! Попробуйте еще раз позже.\n/start")
 
     def process_get_task_id_from_student(message):
         try:
             task_id = message.text.strip()
             task_info = get_task_by_pk(task_id)
             student_info = get_student_by_tg_id(message.from_user.id)
-            if task_info[5] == 0 or (str(student_info[1]) not in task_info[3] and task_info[3] != 'все'):
+            if not task_info:
+                bot.send_message(message.chat.id, "Вы ввели неправильный номер, попробуйте ещё раз:")
+                bot.register_next_step_handler(message, process_get_task_id_from_student)
+                return
+            if task_info[5] == 0 or not (str(student_info[1]) in task_info[3] or task_info[3] == 'все'):
                 bot.send_message(message.chat.id, "Вы ввели неправильный номер, попробуйте ещё раз:")
                 bot.register_next_step_handler(message, process_get_task_id_from_student)
                 return
@@ -189,7 +209,6 @@ def setup_student_handlers(bot):
                                  f'Файл не найден. Проверьте, что ваше фио и группа записаны также, '
                                  f'как в списке лектора.',
                                  reply_markup = students_keyboard())
-
         except Exception as e:
             logging.error(f"Ошибка в def process_get_task_id_from_student: {e}")
-            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз.")
+            bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз позже.\n/start")

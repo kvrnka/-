@@ -1,6 +1,7 @@
 import sys
 import logging
 import os
+import re
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "databases_methods"))
 
@@ -10,7 +11,7 @@ from students_handler import setup_student_handlers, students_keyboard
 from admins_handler import admin_keyboard, setup_admin_handlers
 from main_admins_handler import main_admin_keyboard, setup_main_admin_handlers
 
-from databases_methods.main_admin_methods import get_main_admin
+from databases_methods.main_admin_methods import get_main_admin, add_main_admin
 from databases_methods.users_methods import add_user
 from databases_methods.students_methods import add_student
 from databases_methods.key_for_admin import search_key
@@ -58,7 +59,7 @@ def start(message):
             bot.register_next_step_handler(message, process_fio)
     except Exception as e:
         logging.error(f"Ошибка в команде /start: {e}")
-        bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз позже.")
+        bot.send_message(message.chat.id, "Произошла ошибка! Попробуйте еще раз позже.\n/start")
 
 
 # узнаем фио пользователя
@@ -92,7 +93,7 @@ def process_fio(message):
                          reply_markup = markup)
     except Exception as e:
         logging.error(f"Ошибка в process_fio: {e}")
-        bot.send_message(message.chat.id, "Произошла ошибка при обработке имени. Попробуйте еще раз.")
+        bot.send_message(message.chat.id, "Произошла ошибка при обработке имени. Попробуйте позже.\n/start")
 
 
 # продолжение регистрации
@@ -107,60 +108,73 @@ def continue_registration(callback):
             bot.register_next_step_handler(callback.message, process_group)
     except Exception as e:
         logging.error(f"Ошибка в continue_registration: {e}")
-        bot.send_message(callback.message.chat.id, "Произошла ошибка. Попробуйте еще раз.")
+        bot.send_message(callback.message.chat.id, "Произошла ошибка. Попробуйте позже.\n/start")
 
 
 # узнаем номер группы студента
 def process_group(message):
     try:
-        group = message.text
-        if add_student(message.from_user.id, group):
+        group = message.text.strip()
+        if not group.isdigit():
+            bot.send_message(message.chat.id, f'Группа должна состоять только из цифр. Введите ещё раз:')
+            bot.register_next_step_handler(message, process_group)
+            return
+        if add_student(message.from_user.id, int(group)):
             bot.send_message(message.chat.id, "Ваши данные сохранены, вы найдены в списке лектора! "
                                               "Выберите следующее действие:",
                              reply_markup = students_keyboard())
         else:
             bot.send_message(message.chat.id,
                              "Ваши данные сохранены, но вы не найдены в списке лектора.\n"
-                             "Проверьте, совпадают ли ваши группа и имя с ведомостью. "
+                             "Проверьте, совпадают ли ваши группа и имя с ведомостью.\n"
                              "Вы в любой момент можете изменить данные.\n"
                              "Выберите следующее действие:",
                              reply_markup = students_keyboard())
     except Exception as e:
         logging.error(f"Ошибка в process_group: {e}")
-        bot.send_message(message.chat.id, "Произошла ошибка при обработке группы. Попробуйте еще раз.")
+        bot.send_message(message.chat.id, "Произошла ошибка при обработке группы. Попробуйте позже.\n/start")
 
 
 def process_new_admin(message):
     try:
         key = message.text
         res = search_key(key)
-        if res:
+        if key == '/start':
+            return
+        res = search_key(key)
+        if not res:
+            bot.send_message(message.chat.id,
+                             "Не удалось зарегистрироваться. "
+                             "Возможно, вы ввели неверный код, или код уже устарел. \n"
+                             "Попробуйте ввести код ещё раз или нажмите /start:")
+            bot.register_next_step_handler(message, process_new_admin)
+            return
+        elif res[-1] == 'main':
+            add_main_admin(message.from_user.id, message.from_user.username, '', message.from_user.first_name)
+            bot.send_message(message.chat.id,
+                             "Вы зарегистрированы, как главный администратор!")
+        elif res[-1] == 'not_main':
             bot.send_message(message.chat.id,
                              "Введите группы, за которые вы ответственны через запятую. Например: 241, 243, 244")
             bot.register_next_step_handler(message, process_group_for_admin)
-        else:
-            markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton('Я студент', callback_data = 'student'))
-            markup.add(types.InlineKeyboardButton('Я преподаватель или ассистент', callback_data = 'new_admin'))
-            bot.send_message(message.chat.id,
-                             "Не удалось зарегистрироваться. Возможно, вы ввели неверный код, или код уже устарел. \n"
-                             "Выберите следующее действие:",
-                             reply_markup = markup)
     except Exception as e:
         logging.error(f"Ошибка в process_new_admin: {e}")
-        bot.send_message(message.chat.id, "Произошла ошибка. Попробуйте еще раз.")
+        bot.send_message(message.chat.id, "Произошла ошибка. Попробуйте позже.\n/start")
 
 
 def process_group_for_admin(message):
     try:
-        groups = message.text.strip
-        # проверить, что вводится как надо
+        groups = message.text.strip()
+        if re.fullmatch(r"(\d+)(,\s*\d+)*", groups):
+            bot.send_message(message.chat.id, f'Неправильный формат! Попробуйте снова:')
+            bot.register_next_step_handler(message, process_group_for_admin)
+            return
         add_admin(message.from_user.id, message.from_user.username, groups)
         bot.send_message(message.chat.id, "Вы успешно зарегистрировались, теперь вам доступны права администратора!",
                          reply_markup = admin_keyboard())
     except Exception as e:
         logging.error(f"Ошибка в process_group_for_admin: {e}")
-        bot.send_message(message.chat.id, "Произошла ошибка при обработке групп. Попробуйте еще раз.")
+        bot.send_message(message.chat.id, "Произошла ошибка при обработке групп. Попробуйте позже.\n/start")
 
 
 bot.polling(none_stop = True)
