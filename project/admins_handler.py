@@ -175,13 +175,17 @@ def setup_admin_handlers(bot):
             for group in groups:
                 pdf_path_task = f"task/{task_info[1]}/{task_info[1]}_condition_for_group_{group}.pdf"
                 pdf_path_ans = f"task/{task_info[1]}/{task_info[1]}_ans_for_group_{group}.pdf"
+                pdf_path_solution = f"task/{task_info[1]}/{task_info[1]}_solution_for_group_{group}.pdf"
 
-                if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans):
-                    with open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2:
+                if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans) and os.path.exists(pdf_path_solution):
+                    with (open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2,
+                          open(pdf_path_solution, "rb") as pdf3):
                         bot.send_document(message.chat.id, pdf1,
                                           caption = f'Задание: {task_info[1]}\nУсловия для группы: {group}')
                         bot.send_document(message.chat.id, pdf2,
                                           caption = f'Задание: {task_info[1]}\nОтветы для группы: {group}')
+                        bot.send_document(message.chat.id, pdf3,
+                                          caption = f'Задание: {task_info[1]}\nРешения для группы: {group}')
             bot.send_message(
                 message.chat.id,
                 f'Выберите следующее действие', reply_markup = admin_keyboard())

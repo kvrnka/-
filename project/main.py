@@ -2,22 +2,22 @@ import sys
 import logging
 import os
 import re
+import time
+import telebot
+from telebot import types
+from dotenv import load_dotenv
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "databases_methods"))
 
-import telebot
-from telebot import types
 from students_handler import setup_student_handlers, students_keyboard
 from admins_handler import admin_keyboard, setup_admin_handlers
 from main_admins_handler import main_admin_keyboard, setup_main_admin_handlers
-
 from databases_methods.main_admin_methods import get_main_admin, add_main_admin
 from databases_methods.users_methods import add_user
 from databases_methods.students_methods import add_student
 from databases_methods.key_for_admin import search_key
 from databases_methods.students_methods import get_student_by_tg_id
 from databases_methods.admins_methods import add_admin, get_admin
-from dotenv import load_dotenv
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -179,4 +179,10 @@ def process_group_for_admin(message):
         bot.send_message(message.chat.id, "Произошла ошибка при обработке групп. Попробуйте позже.\n/start")
 
 
-bot.polling(none_stop = True)
+while True:
+    try:
+        print("Бот запущен...")
+        bot.polling(none_stop=True, timeout=10, long_polling_timeout=10)
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        time.sleep(5)  # Подождать 5 секунд и перезапустить

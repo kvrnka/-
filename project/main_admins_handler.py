@@ -368,11 +368,14 @@ def setup_main_admin_handlers(bot):
 
             pdf_path_task = f"task/{task_name}/{task_name}_system_of_equations.pdf"
             pdf_path_ans = f"task/{task_name}/{task_name}_system_of_equations_answer.pdf"
+            pdf_path_solution = f"task/{task_name}/{task_name}_system_of_equations_solution.pdf"
 
-            if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans):
-                with open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2:
+            if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans) and os.path.exists(pdf_path_solution):
+                with (open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2,
+                      open(pdf_path_solution) as pdf3):
                     bot.send_document(message.chat.id, pdf1, caption = "Задания")
                     bot.send_document(message.chat.id, pdf2, caption = "Ответы")
+                    bot.send_document(message.chat.id, pdf3, caption = "Решения")
                 bot.send_message(
                     message.chat.id,
                     f'Задание успешно создано!\n\nНазвание: {task_name}\nДедлайн: {deadline}\nДля: {target_group}\n\n'
@@ -467,10 +470,12 @@ def setup_main_admin_handlers(bot):
             if action == 'get_task_and_answer':
                 pdf_path_task = f"task/{task_info[1]}/{task_info[1]}_system_of_equations.pdf"
                 pdf_path_ans = f"task/{task_info[1]}/{task_info[1]}_system_of_equations_answer.pdf"
-                if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans):
-                    with open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2:
+                pdf_path_solution = f"task/{task_info[1]}/{task_info[1]}_system_of_equations_solution.pdf"
+                if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans) and os.path.exists(pdf_path_solution):
+                    with open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2, open(pdf_path_solution, "rb") as pdf3:
                         bot.send_document(message.chat.id, pdf1, caption = f"Условия для {task_info[1]}")
                         bot.send_document(message.chat.id, pdf2, caption = f"Ответы для {task_info[1]}")
+                        bot.send_document(message.chat.id, pdf3, caption = f"Решения для {task_info[1]}")
                     bot.send_message(message.chat.id, f'Выберите следующее действие:',
                                      reply_markup = main_admin_keyboard())
             elif action == 'change_task_deadline':
