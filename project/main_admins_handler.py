@@ -372,7 +372,7 @@ def setup_main_admin_handlers(bot):
 
             if os.path.exists(pdf_path_task) and os.path.exists(pdf_path_ans) and os.path.exists(pdf_path_solution):
                 with (open(pdf_path_task, "rb") as pdf1, open(pdf_path_ans, "rb") as pdf2,
-                      open(pdf_path_solution) as pdf3):
+                      open(pdf_path_solution, "rb") as pdf3):
                     bot.send_document(message.chat.id, pdf1, caption = "Задания")
                     bot.send_document(message.chat.id, pdf2, caption = "Ответы")
                     bot.send_document(message.chat.id, pdf3, caption = "Решения")

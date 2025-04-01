@@ -102,7 +102,7 @@ def add_student_in_list(text):
     cursor = conn.cursor()
 
     for student in students:
-        name_and_group = [elem.split() for elem in student.split(",")]
+        name_and_group = [elem.strip() for elem in student.split(",")]
         # 0 - имя, 1 - группа
         cursor.execute("INSERT OR IGNORE INTO list_of_students (group_number, full_name) VALUES (?, ?)",
                        (name_and_group[1], name_and_group[0]))

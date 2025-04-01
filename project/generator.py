@@ -79,34 +79,38 @@ def is_proportional(ai, row):
     return True
 
 
+def generate_one_eq(count_of_eq):
+    x_ans = [random.randint(-15, 15) for _ in range(count_of_eq)]  # генерируем ответ
+    while x_ans == [0] * count_of_eq:
+        x_ans = [random.randint(-10, 10) for _ in range(count_of_eq)]
+    aa = []  # матрица коэффициентов
+    b = []
+
+    for i in range(count_of_eq):
+        ai = [random.randint(-10, 10) for _ in range(count_of_eq)]
+        # не допускаем, чтобы строки были пропорциональны
+        for row in aa:
+            while is_proportional(ai, row) or ai == [0] * count_of_eq:
+                ai = [random.randint(-10, 10) for _ in range(count_of_eq)]
+        bi = sum(a * x for a, x in zip(ai, x_ans))
+        b.append(bi)
+        aa.append(ai)
+    a_matrix = sp.Matrix(aa)  # матрица коэффициентов
+    b_vector = sp.Matrix(b)  # вектор свободных коэффициентов
+
+    x_i = sp.symbols(f'x1:{count_of_eq + 1}')
+    x_vector = sp.Matrix(x_i)
+    equations = [sp.Eq(lhs, rhs) for lhs, rhs in zip(a_matrix * x_vector, b_vector)]
+    return equations, a_matrix, b_vector, x_ans  # система, матрица коэффициентов, вектор b, ответ
+
+
 # функция для генерации заданий для одного варианта
 def generate_eq_for_variant(count_of_task, count_of_eq):
     latex_code_one_variants = ''
     latex_code_ans = ''
     latex_code_solution = ''
     for task in range(count_of_task):
-        x_ans = [random.randint(-15, 15) for _ in range(count_of_eq[task])]  # генерируем ответ
-        while x_ans == [0] * count_of_eq[task]:
-            x_ans = [random.randint(-10, 10) for _ in range(count_of_eq[task])]
-        aa = []  # матрица коэффициентов
-        b = []
-
-        for i in range(count_of_eq[task]):
-            ai = [random.randint(-10, 10) for _ in range(count_of_eq[task])]
-            # не допускаем, чтобы строки были пропорциональны
-            for row in aa:
-                while is_proportional(ai, row) or ai == [0] * count_of_eq[task]:
-                    ai = [random.randint(-10, 10) for _ in range(count_of_eq[task])]
-            bi = sum(a * x for a, x in zip(ai, x_ans))
-            b.append(bi)
-            aa.append(ai)
-
-        a_matrix = sp.Matrix(aa)  # матрица коэффициентов
-        b_vector = sp.Matrix(b)  # вектор решений
-
-        x_i = sp.symbols(f'x1:{count_of_eq[task] + 1}')
-        x_vector = sp.Matrix(x_i)
-        equations = [sp.Eq(lhs, rhs) for lhs, rhs in zip(a_matrix * x_vector, b_vector)]
+        equations, a_matrix, b_vector, x_ans = generate_one_eq(count_of_eq[task])
 
         task_tex = from_equations_to_latex(equations)
         # сохранили условие
