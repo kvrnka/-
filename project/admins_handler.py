@@ -38,12 +38,15 @@ def setup_admin_handlers(bot):
         try:
             key = message.text
             if key == '/start':
+                bot.send_message(message.chat.id,
+                                 "Выберите следующее действие:",
+                                 reply_markup = admin_keyboard())
                 return
             res = search_key(key)
             if res and res[-1] == 'main':
                 add_main_admin(message.from_user.id, message.from_user.username, '', message.from_user.first_name)
                 bot.send_message(message.chat.id,
-                                 "Вы зарегистрированы, как главный администратор!",
+                                 "Вы зарегистрированы как главный администратор!",
                                  reply_markup = main_admin_keyboard())
             else:
                 bot.send_message(message.chat.id,
@@ -109,6 +112,9 @@ def setup_admin_handlers(bot):
         try:
             new_group = message.text.strip()
             if new_group == '/start':
+                bot.send_message(message.chat.id,
+                                 "Выберите следующее действие:",
+                                 reply_markup = admin_keyboard())
                 return
             if re.fullmatch(r"(\d+)(,\s*\d+)*", new_group):
                 bot.send_message(message.chat.id, f'Неправильный формат! Попробуйте снова:')
@@ -162,6 +168,9 @@ def setup_admin_handlers(bot):
         try:
             task_id = message.text.strip()
             if task_id == '/start':
+                bot.send_message(message.chat.id,
+                                 "Выберите следующее действие:",
+                                 reply_markup = admin_keyboard())
                 return
             task_info = get_task_by_pk(task_id)
             admin_info = get_admin(message.from_user.id)

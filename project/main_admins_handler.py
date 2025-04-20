@@ -97,6 +97,8 @@ def setup_main_admin_handlers(bot):
         try:
             password = message.text
             if password == '/start':
+                bot.send_message(message.chat.id, f"Выберите следующее действие:",
+                                 reply_markup = main_admin_keyboard())
                 return
             if search_key(password):
                 bot.send_message(message.chat.id, f"Такой пароль уже существует! "
@@ -105,7 +107,6 @@ def setup_main_admin_handlers(bot):
                 return
             tg_id = message.from_user.id
             if type_admin == 'main':
-                print("i'm here")
                 add_key(tg_id, password, 'main')
             else:
                 add_key(tg_id, password, 'not_main')
@@ -129,13 +130,14 @@ def setup_main_admin_handlers(bot):
             new_list_main_admin = get_list_of_main_admin()
             text = ''
             if new_list_main_admin:
-                text = 'Главные администраторы:\n' + new_list_main_admin
+                text = 'Главные администраторы:\n\n' + new_list_main_admin
             if new_list_admin:
-                text += 'Ассистенты:\n' + new_list_admin
+                text += 'Ассистенты:\n\n' + new_list_admin
             if check1 + check2 == count:
                 if text:
                     bot.send_message(message.chat.id,
-                                     f"Пользователи успешно удалены из администраторов. Новый список администраторов:\n"
+                                     f"Пользователи успешно удалены из администраторов. "
+                                     f"Новый список администраторов:\n\n"
                                      f"{text}", reply_markup = main_admin_keyboard())
                 else:
                     bot.send_message(message.chat.id,
@@ -145,7 +147,7 @@ def setup_main_admin_handlers(bot):
             else:
                 bot.send_message(message.chat.id,
                                  f"Не удалось удалить какого-то пользователя из администраторов. "
-                                 f"Список на данный момент: \n"
+                                 f"Список на данный момент: \n\n"
                                  f"{text}", reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_delete_admin: {e}")
@@ -206,6 +208,7 @@ def setup_main_admin_handlers(bot):
         try:
             name = message.text.strip()
             if name == '/start':
+                bot.send_message(message.chat.id, f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
                 return
             pattern = r"^[А-ЯЁа-яёA-Za-z-]+(?:\s[А-ЯЁа-яёA-Za-z-]+){1,2},\s*\d+$"
             lines = name.split('\n')
@@ -302,6 +305,9 @@ def setup_main_admin_handlers(bot):
     def process_deadline_of_new_task(message, task_name):
         try:
             deadline = message.text.strip()
+            if deadline == '/start':
+                bot.send_message(message.chat.id, f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
+                return
             pattern = r"^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$"
             if not re.match(pattern, deadline):
                 bot.send_message(message.chat.id, "Некорректный формат! Введите дату в формате ДД.ММ.ГГГГ ЧЧ:ММ")
@@ -325,6 +331,7 @@ def setup_main_admin_handlers(bot):
         try:
             target_group = message.text.strip()
             if target_group == '/start':
+                bot.send_message(message.chat.id, f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
                 return
             pattern = r"^\d+(,\s*\d+)*$"
             if target_group.lower() != 'все' and not re.fullmatch(pattern, target_group):
@@ -346,6 +353,7 @@ def setup_main_admin_handlers(bot):
         try:
             system_size = message.text.strip()
             if system_size == '/start':
+                bot.send_message(message.chat.id, f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
                 return
             pattern = r"(\d+)(,\s*\d+)*"
             if not re.fullmatch(pattern, system_size):
@@ -356,10 +364,11 @@ def setup_main_admin_handlers(bot):
                 return
 
             sizes_of_eq = [int(size.strip()) for size in system_size.split(",")]
-            if len(sizes_of_eq) > 20 or sum(sizes_of_eq) > 100:
+            if len(sizes_of_eq) > 20 or max(sizes_of_eq) > 12:
                 bot.send_message(message.chat.id,
-                                 f'Слишком большое количество заданий или слишком большие размеры систем! '
-                                 f'Попробуйте ввести меньше параметров')
+                                 f'Слишком большое количество заданий или слишком большие размеры систем!\n'
+                                 f'Максимальный размер системы 12, максимальное количество заданий в варианте 20.\n'
+                                 f'Попробуйте ввести параметры снова:')
                 bot.register_next_step_handler(message, process_system_size, task_name, deadline, target_group)
                 return
 
@@ -460,6 +469,7 @@ def setup_main_admin_handlers(bot):
         try:
             task_id = message.text.strip()
             if task_id == '/start':
+                bot.send_message(message.chat.id, f"Выберите следующее действие:", reply_markup = main_admin_keyboard())
                 return
             task_info = get_task_by_pk(task_id)
             if not task_id.isdigit() or not task_info:

@@ -63,40 +63,35 @@ def gaussian(a_matrix, b_matrix):
 
 
 # функция для определения пропорциональности строк, чтобы не допускать обнуления строки
-def is_proportional(ai, row):
-    relation = 0
-    for ai_elem, row_elem in zip(ai, row):
-        if ai_elem == 0 and row_elem == 0:
-            continue
-        elif ai_elem == 0 and row_elem != 0 or ai_elem != 0 and row_elem == 0:
-            return False
-        else:
-            ratio = ai_elem / row_elem
-            if relation == 0:
-                relation = ratio
-            elif relation != ratio:
-                return False
-    return True
+# def is_proportional(ai, row):
+#     relation = 0
+#     for ai_elem, row_elem in zip(ai, row):
+#         if ai_elem == 0 and row_elem == 0:
+#             continue
+#         elif ai_elem == 0 and row_elem != 0 or ai_elem != 0 and row_elem == 0:
+#             return False
+#         else:
+#             ratio = ai_elem / row_elem
+#             if relation == 0:
+#                 relation = ratio
+#             elif relation != ratio:
+#                 return False
+#     return True
 
 
 def generate_one_eq(count_of_eq):
     x_ans = [random.randint(-15, 15) for _ in range(count_of_eq)]  # генерируем ответ
     while x_ans == [0] * count_of_eq:
         x_ans = [random.randint(-10, 10) for _ in range(count_of_eq)]
-    aa = []  # матрица коэффициентов
-    b = []
 
-    for i in range(count_of_eq):
-        ai = [random.randint(-10, 10) for _ in range(count_of_eq)]
-        # не допускаем, чтобы строки были пропорциональны
-        for row in aa:
-            while is_proportional(ai, row) or ai == [0] * count_of_eq:
-                ai = [random.randint(-10, 10) for _ in range(count_of_eq)]
-        bi = sum(a * x for a, x in zip(ai, x_ans))
-        b.append(bi)
-        aa.append(ai)
-    a_matrix = sp.Matrix(aa)  # матрица коэффициентов
-    b_vector = sp.Matrix(b)  # вектор свободных коэффициентов
+    # Генерация невырожденной матрицы A
+    while True:
+        a_matrix = sp.Matrix([[random.randint(-10, 10) for _ in range(count_of_eq)] for _ in range(count_of_eq)])
+        if a_matrix.det() != 0:
+            break  # Матрица невырожденная
+
+    x_vector = sp.Matrix(x_ans)
+    b_vector = a_matrix * x_vector
 
     x_i = sp.symbols(f'x1:{count_of_eq + 1}')
     x_vector = sp.Matrix(x_i)

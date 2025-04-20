@@ -8,6 +8,7 @@ from databases_methods.key_for_admin import search_key
 from databases_methods.admins_methods import add_admin
 from databases_methods.main_admin_methods import add_main_admin
 from admins_handler import admin_keyboard
+from main_admins_handler import main_admin_keyboard
 
 logging.basicConfig(
     filename = "bot_errors.log",
@@ -83,7 +84,8 @@ def setup_student_handlers(bot):
             elif res[-1] == 'main':
                 add_main_admin(message.from_user.id, message.from_user.username, '', message.from_user.first_name)
                 bot.send_message(message.chat.id,
-                                 "Вы зарегистрированы, как главный администратор!")
+                                 "Вы зарегистрированы как главный администратор!",
+                                 reply_markup = main_admin_keyboard())
         except Exception as e:
             logging.error(f"Ошибка в process_new_admin: {e}")
             bot.send_message(message.chat.id, "Произошла ошибка. Попробуйте позже.\n/start")

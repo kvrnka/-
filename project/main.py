@@ -55,7 +55,8 @@ def start(message):
         else:
             bot.send_message(message.chat.id,
                              f'Здравствуйте, {message.from_user.first_name}! '
-                             f'Вы еще не зарегистрированы. Введите своё ФИО также, как написано в ведомости.')
+                             f'Вы еще не зарегистрированы. \n'
+                             f'Если вы - студент, введите своё ФИО также, как написано в ведомости.')
             bot.register_next_step_handler(message, process_fio)
     except Exception as e:
         logging.error(f"Ошибка в команде /start: {e}")
@@ -151,7 +152,7 @@ def process_new_admin(message):
         elif res[-1] == 'main':
             add_main_admin(message.from_user.id, message.from_user.username, '', message.from_user.first_name)
             bot.send_message(message.chat.id,
-                             "Вы зарегистрированы, как главный администратор!")
+                             "Вы зарегистрированы как главный администратор!", reply_markup = main_admin_keyboard())
         elif res[-1] == 'not_main':
             bot.send_message(message.chat.id,
                              "Введите группы, за которые вы ответственны через запятую и пробел. "
