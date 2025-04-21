@@ -13,16 +13,15 @@ from generator import generate_eq_for_variant, gaussian, generate_one_eq  # Им
 # 1. Тест генерации уравнений
 def test_generate_one_eq():
     for _ in range(7):
-        size = random.randint(1, 10)  # Размер матрицы от 1 до 10
-        eq, a, b, x = generate_one_eq(size)  # Генерируем систему
+        size = random.randint(1, 10)
+        eq, a, b, x = generate_one_eq(size)
 
         a_np = np.array(a.tolist(), dtype=float)
         b_np = np.array(b.tolist(), dtype=float)
 
-        ans = np.linalg.solve(a_np, b_np)  # Решаем систему
-        x_np = np.array(x, dtype=float)  # Преобразуем ответ в numpy-массив
+        ans = np.linalg.solve(a_np, b_np)
+        x_np = np.array(x, dtype=float)
 
-        # Проверяем, совпадает ли решение (с небольшой погрешностью)
         assert np.allclose(ans.ravel(), x_np), f"Решение не совпало!\nОжидалось: {x_np}\nПолучено: {ans.ravel()}"
 
 
@@ -47,7 +46,7 @@ def test_gaussian():
 
     A_np = np.array(A.tolist(), dtype = float)
     B_np = np.array(B.tolist(), dtype = float)
-    expected_solution = np.linalg.solve(A_np, B_np)  # Проверяем правильность
+    expected_solution = np.linalg.solve(A_np, B_np)
 
     assert "\\begin{cases}" not in solution_latex, "Latex-код не должен содержать систему!"
     assert expected_solution is not None, "Метод Гаусса не нашел решение!"
